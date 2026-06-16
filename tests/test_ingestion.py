@@ -1,16 +1,48 @@
 from src.ingestion.company_ingestion import fetch_company_metadata
-from src.database.store import store_company
+from src.ingestion.market_data_ingestion import fetch_market_data
+
+from src.database.store import (
+    store_company,
+    store_market_data,
+)
 
 
-def test_company_ingestion_and_storage():
-    metadata = fetch_company_metadata("AAPL")
+TEST_TICKER = "AAPL"
+
+
+# ---------------------------------------------------------------------
+# Company ingestion + storage test
+# ---------------------------------------------------------------------
+
+
+def test_company_ingestion_and_storage() -> None:
+    metadata = fetch_company_metadata(TEST_TICKER)
     company = store_company(metadata)
 
+    print("Company stored:")
     print(company.id)
     print(company.ticker)
     print(company.name)
     print(company.exchange)
 
 
+# ---------------------------------------------------------------------
+# Market data ingestion + storage test
+# ---------------------------------------------------------------------
+
+
+def test_market_data_ingestion_and_storage() -> None:
+    metadata = fetch_company_metadata(TEST_TICKER)
+    store_company(metadata)
+
+    df = fetch_market_data(TEST_TICKER)
+    store_market_data(TEST_TICKER, df)
+
+    print("Market data stored:")
+    print(f"Ticker: {TEST_TICKER}")
+    print(f"Rows fetched: {len(df)}")
+
+
 if __name__ == "__main__":
     test_company_ingestion_and_storage()
+    test_market_data_ingestion_and_storage()

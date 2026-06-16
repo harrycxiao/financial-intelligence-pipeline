@@ -1,8 +1,11 @@
+# src/ingestion/company_ingestion.py
+
 from typing import Optional
 
 import yfinance as yf
 
 
+# Convert Yahoo Finance exchange codes into cleaner exchange names.
 EXCHANGE_MAP = {
     "NMS": "NASDAQ",
     "NGM": "NASDAQ",
@@ -16,6 +19,8 @@ EXCHANGE_MAP = {
 
 
 def normalize_exchange(exchange_code: Optional[str]) -> Optional[str]:
+    """Convert a Yahoo exchange code into a readable exchange name."""
+
     if exchange_code is None:
         return None
 
@@ -23,6 +28,8 @@ def normalize_exchange(exchange_code: Optional[str]) -> Optional[str]:
 
 
 def fetch_company_metadata(ticker: str) -> dict:
+    """Fetch basic company metadata from Yahoo Finance."""
+
     ticker = ticker.upper().strip()
     stock = yf.Ticker(ticker)
 

@@ -1,3 +1,5 @@
+# src/database/models.py
+
 from datetime import date as PythonDate, datetime, timezone
 from typing import Optional
 
@@ -6,10 +8,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.connection import Base
 
+
 def utc_now() -> datetime:
+    """Return the current UTC time as a timezone-aware datetime."""
     return datetime.now(timezone.utc)
 
+
 class Company(Base):
+    """Master company metadata table."""
+
     __tablename__ = "companies"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -30,6 +37,8 @@ class Company(Base):
 
 
 class MarketPrice(Base):
+    """Daily historical stock price data."""
+
     __tablename__ = "market_prices"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -53,6 +62,8 @@ class MarketPrice(Base):
 
 
 class Filing(Base):
+    """SEC filing metadata, raw text, and generated summaries."""
+
     __tablename__ = "filings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -72,6 +83,8 @@ class Filing(Base):
 
 
 class NewsArticle(Base):
+    """Company-related news articles and optional AI/sentiment outputs."""
+
     __tablename__ = "news_articles"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -94,6 +107,8 @@ class NewsArticle(Base):
 
 
 class FinancialMetric(Base):
+    """Company financial statement metrics by fiscal period."""
+
     __tablename__ = "financial_metrics"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)

@@ -1,10 +1,18 @@
+# src/database/store.py
+
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.connection import SessionLocal
-from src.database.models import Company
+from src.database.models import Company, MarketPrice
+
+
+# ---------------------------------------------------------------------
+# Company storage
+# ---------------------------------------------------------------------
 
 
 def store_company(metadata: dict) -> Company:
+    """Insert or update a company metadata row."""
 
     session = SessionLocal()
 
@@ -40,6 +48,70 @@ def store_company(metadata: dict) -> Company:
         session.refresh(company)
 
         return company
+
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise e
+
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------
+# Market data storage
+# ---------------------------------------------------------------------
+
+
+def store_market_data(ticker: str, df) -> None:
+    """Store historical market price rows for an existing company."""
+
+    session = SessionLocal()
+
+    try:
+        ticker = ticker.upper().strip()
+
+        company = (
+            session.query(Company)
+            .filter(Company.ticker == ticker)
+            .first()
+        )
+
+        if company is None:
+            raise ValueError(
+                f"Company '{ticker}' not found. Store company metadata first."
+            )
+
+        company_id = company.id
+
+        for _, row in df.iterrows():
+            row_date = row["date"].date()
+
+            existing_price = (
+                session.query(MarketPrice)
+                .filter(
+                    MarketPrice.company_id == company_id,
+                    MarketPrice.date == row_date,
+                )
+                .first()
+            )
+
+            if existing_price is not None:
+                continue
+
+            market_price = MarketPrice(
+                company_id=company_id,
+                date=row_date,
+                open=float(row["open"]),
+                high=float(row["high"]),
+                low=float(row["low"]),
+                close=float(row["close"]),
+                adjusted_close=float(row["adjusted_close"]),
+                volume=int(row["volume"]),
+            )
+
+            session.add(market_price)
+
+        session.commit()
 
     except SQLAlchemyError as e:
         session.rollback()
