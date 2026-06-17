@@ -1,9 +1,19 @@
 # src/database/store.py
 
+import pandas as pd
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.connection import SessionLocal
-from src.database.models import Company, MarketPrice
+from src.database.models import Company, FinancialMetric, MarketPrice
+
+
+def clean_float(value):
+    """Convert NaN values from pandas into None before storing in Postgres."""
+
+    if pd.isna(value):
+        return None
+
+    return float(value)
 
 
 # ---------------------------------------------------------------------
@@ -34,7 +44,6 @@ def store_company(metadata: dict) -> Company:
                 exchange=metadata.get("exchange"),
                 cik=metadata.get("cik"),
             )
-
             session.add(company)
 
         else:
@@ -101,15 +110,91 @@ def store_market_data(ticker: str, df) -> None:
             market_price = MarketPrice(
                 company_id=company_id,
                 date=row_date,
-                open=float(row["open"]),
-                high=float(row["high"]),
-                low=float(row["low"]),
-                close=float(row["close"]),
-                adjusted_close=float(row["adjusted_close"]),
-                volume=int(row["volume"]),
+                open=clean_float(row["open"]),
+                high=clean_float(row["high"]),
+                low=clean_float(row["low"]),
+                close=clean_float(row["close"]),
+                adjusted_close=clean_float(row["adjusted_close"]),
+                volume=int(row["volume"]) if not pd.isna(row["volume"]) else None,
             )
 
             session.add(market_price)
+
+        session.commit()
+
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise e
+
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------
+# Financial metrics storage
+# ---------------------------------------------------------------------
+
+
+def store_financial_metrics(ticker: str, df) -> None:
+    """Store annual financial metrics for an existing company."""
+
+    session = SessionLocal()
+
+    try:
+        ticker = ticker.upper().strip()
+
+        company = (
+            session.query(Company)
+            .filter(Company.ticker == ticker)
+            .first()
+        )
+
+        if company is None:
+            raise ValueError(
+                f"Company '{ticker}' not found. Store company metadata first."
+            )
+
+        company_id = company.id
+
+        # SEC ingestion gives us reliable CIK data, so update the company row.
+        if not df.empty and "cik" in df.columns and not pd.isna(df.iloc[0]["cik"]):
+            company.cik = str(df.iloc[0]["cik"])
+
+        for _, row in df.iterrows():
+            period_end_date = pd.to_datetime(row["period_end_date"]).date()
+            fiscal_period = row.get("fiscal_period")
+
+            existing_metric = (
+                session.query(FinancialMetric)
+                .filter(
+                    FinancialMetric.company_id == company_id,
+                    FinancialMetric.period_end_date == period_end_date,
+                    FinancialMetric.fiscal_period == fiscal_period,
+                )
+                .first()
+            )
+
+            if existing_metric is None:
+                existing_metric = FinancialMetric(
+                    company_id=company_id,
+                    period_end_date=period_end_date,
+                    fiscal_period=fiscal_period,
+                )
+                session.add(existing_metric)
+
+            existing_metric.fiscal_year = int(row["fiscal_year"]) if not pd.isna(row["fiscal_year"]) else None
+            existing_metric.revenue = clean_float(row.get("revenue"))
+            existing_metric.net_income = clean_float(row.get("net_income"))
+            existing_metric.operating_income = clean_float(row.get("operating_income"))
+            existing_metric.gross_profit = clean_float(row.get("gross_profit"))
+
+            existing_metric.total_assets = clean_float(row.get("total_assets"))
+            existing_metric.total_liabilities = clean_float(row.get("total_liabilities"))
+            existing_metric.cash_and_equivalents = clean_float(row.get("cash_and_equivalents"))
+            existing_metric.total_debt = clean_float(row.get("total_debt"))
+
+            existing_metric.operating_cash_flow = clean_float(row.get("operating_cash_flow"))
+            existing_metric.free_cash_flow = clean_float(row.get("free_cash_flow"))
 
         session.commit()
 
