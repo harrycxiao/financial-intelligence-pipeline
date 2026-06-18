@@ -12,17 +12,35 @@ SEC_HEADERS = {
 
 
 US_GAAP_TAGS = {
-    "revenue": ["Revenues", "SalesRevenueNet", "RevenueFromContractWithCustomerExcludingAssessedTax"],
+    "revenue": [
+        "Revenues",
+        "SalesRevenueNet",
+        "RevenueFromContractWithCustomerExcludingAssessedTax",
+    ],
     "net_income": ["NetIncomeLoss"],
     "operating_income": ["OperatingIncomeLoss"],
     "gross_profit": ["GrossProfit"],
     "total_assets": ["Assets"],
     "total_liabilities": ["Liabilities"],
-    "cash_and_equivalents": ["CashAndCashEquivalentsAtCarryingValue"],
-    "total_debt": ["LongTermDebtAndFinanceLeaseObligationsCurrent", "LongTermDebtAndFinanceLeaseObligationsNoncurrent"],
+    "cash_and_equivalents": [
+        "CashAndCashEquivalentsAtCarryingValue",
+        "CashAndCashEquivalentsAndShortTermInvestments",
+    ],
     "operating_cash_flow": ["NetCashProvidedByUsedInOperatingActivities"],
-    "free_cash_flow": ["FreeCashFlow"],
+    "capital_expenditures": [
+        "PaymentsToAcquirePropertyPlantAndEquipment",
+        "PaymentsToAcquireProductiveAssets",
+    ],
 }
+
+DEBT_TAGS = [
+    "ShortTermBorrowings",
+    "CommercialPaper",
+    "LongTermDebtCurrent",
+    "LongTermDebtNoncurrent",
+    "LongTermDebtAndFinanceLeaseObligationsCurrent",
+    "LongTermDebtAndFinanceLeaseObligationsNoncurrent",
+]
 
 
 def get_cik_for_ticker(ticker: str) -> Optional[str]:
@@ -69,38 +87,95 @@ def extract_usd_facts(company_facts: dict, us_gaap_tag: str) -> list[dict]:
 
     return facts
 
-
-def get_latest_fact_value(company_facts: dict, possible_tags: list[str], fiscal_year: int, fiscal_period: str) -> Optional[float]:
+def get_latest_fact(
+    company_facts: dict,
+    tag: str,
+    fiscal_year: int,
+    fiscal_period: str,
+    period_end_date: str,
+) -> Optional[dict]:
     """
-    Find the latest filed USD value for a given fiscal year and fiscal period.
+    Find the latest filed SEC fact matching one exact fiscal period.
 
-    SEC companies sometimes use different US-GAAP tags for similar concepts,
-    so possible_tags lets us try multiple tags.
+    Matching period_end_date is important because SEC companyfacts can include
+    comparative prior-year facts inside newer filings.
     """
 
-    candidates = []
+    facts = extract_usd_facts(company_facts, tag)
 
-    for tag in possible_tags:
-        facts = extract_usd_facts(company_facts, tag)
-
-        for fact in facts:
-            if fact.get("fy") == fiscal_year and fact.get("fp") == fiscal_period:
-                candidates.append(fact)
+    candidates = [
+        fact
+        for fact in facts
+        if (
+            fact.get("fy") == fiscal_year
+            and fact.get("fp") == fiscal_period
+            and fact.get("end") == period_end_date
+        )
+    ]
 
     if not candidates:
         return None
 
-    latest_fact = max(candidates, key=lambda fact: fact.get("filed", ""))
+    return max(candidates, key=lambda fact: fact.get("filed", ""))
 
-    return float(latest_fact["val"]) if latest_fact.get("val") is not None else None
+def get_latest_fact_value(
+    company_facts: dict,
+    possible_tags: list[str],
+    fiscal_year: int,
+    fiscal_period: str,
+    period_end_date: str,
+) -> Optional[float]:
+    """
+    Try multiple US-GAAP tags and return the first matching value.
 
+    Different companies sometimes use different tags for the same concept.
+    """
+
+    for tag in possible_tags:
+        fact = get_latest_fact(
+            company_facts=company_facts,
+            tag=tag,
+            fiscal_year=fiscal_year,
+            fiscal_period=fiscal_period,
+            period_end_date=period_end_date,
+        )
+
+        if fact is not None and fact.get("val") is not None:
+            return float(fact["val"])
+
+    return None
+
+def get_total_debt(
+    company_facts: dict,
+    fiscal_year: int,
+    fiscal_period: str,
+    period_end_date: str,
+) -> Optional[float]:
+    """
+    Compute total debt by summing available current and noncurrent debt tags.
+    """
+
+    total_debt = 0.0
+    found_any_debt = False
+
+    for tag in DEBT_TAGS:
+        fact = get_latest_fact(
+            company_facts=company_facts,
+            tag=tag,
+            fiscal_year=fiscal_year,
+            fiscal_period=fiscal_period,
+            period_end_date=period_end_date,
+        )
+
+        if fact is not None and fact.get("val") is not None:
+            total_debt += float(fact["val"])
+            found_any_debt = True
+
+    return total_debt if found_any_debt else None
 
 def get_reporting_periods(company_facts: dict, years_back: int = 5) -> list[dict]:
     """
-    Find recent annual reporting periods from the revenue facts.
-
-    This uses revenue-like tags as the anchor because most operating companies
-    report revenue every fiscal year.
+    Find recent annual reporting periods and remove SEC comparative duplicates.
     """
 
     periods = []
@@ -119,10 +194,24 @@ def get_reporting_periods(company_facts: dict, years_back: int = 5) -> list[dict
                     }
                 )
 
-    unique_periods = {
-        (period["fiscal_year"], period["fiscal_period"], period["period_end_date"]): period
-        for period in periods
-    }
+    unique_periods = {}
+
+    for period in periods:
+        key = (
+            period["fiscal_period"],
+            period["period_end_date"],
+        )
+
+        if key not in unique_periods:
+            unique_periods[key] = period
+            continue
+
+        existing = unique_periods[key]
+        end_year = int(period["period_end_date"][:4])
+
+        # Prefer the fiscal year that matches the period end year.
+        if period["fiscal_year"] == end_year and existing["fiscal_year"] != end_year:
+            unique_periods[key] = period
 
     sorted_periods = sorted(
         unique_periods.values(),
@@ -131,7 +220,6 @@ def get_reporting_periods(company_facts: dict, years_back: int = 5) -> list[dict
     )
 
     return sorted_periods[:years_back]
-
 
 def fetch_financial_metrics(ticker: str, years_back: int = 5) -> pd.DataFrame:
     """
@@ -155,11 +243,12 @@ def fetch_financial_metrics(ticker: str, years_back: int = 5) -> pd.DataFrame:
     for period in periods:
         fiscal_year = period["fiscal_year"]
         fiscal_period = period["fiscal_period"]
+        period_end_date = period["period_end_date"]
 
         row = {
             "ticker": ticker,
             "cik": cik,
-            "period_end_date": period["period_end_date"],
+            "period_end_date": period_end_date,
             "fiscal_year": fiscal_year,
             "fiscal_period": fiscal_period,
         }
@@ -170,7 +259,25 @@ def fetch_financial_metrics(ticker: str, years_back: int = 5) -> pd.DataFrame:
                 possible_tags=possible_tags,
                 fiscal_year=fiscal_year,
                 fiscal_period=fiscal_period,
+                period_end_date=period_end_date,
             )
+
+        row["total_debt"] = get_total_debt(
+            company_facts=company_facts,
+            fiscal_year=fiscal_year,
+            fiscal_period=fiscal_period,
+            period_end_date=period_end_date,
+        )
+
+        operating_cash_flow = row.get("operating_cash_flow")
+        capital_expenditures = row.get("capital_expenditures")
+
+        if operating_cash_flow is not None and capital_expenditures is not None:
+            row["free_cash_flow"] = operating_cash_flow - abs(capital_expenditures)
+        else:
+            row["free_cash_flow"] = None
+
+        row.pop("capital_expenditures", None)
 
         rows.append(row)
 

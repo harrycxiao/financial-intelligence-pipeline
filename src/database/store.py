@@ -173,6 +173,9 @@ def store_financial_metrics(ticker: str, df) -> None:
                 )
                 .first()
             )
+            
+            if existing_metric is not None:
+                continue
 
             if existing_metric is None:
                 existing_metric = FinancialMetric(
