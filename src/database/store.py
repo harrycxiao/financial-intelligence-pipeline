@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.connection import SessionLocal
-from src.database.models import Company, FinancialMetric, MarketPrice
+from src.database.models import Company, Filing, FinancialMetric, MarketPrice
 
 
 def clean_float(value):
@@ -173,7 +173,7 @@ def store_financial_metrics(ticker: str, df) -> None:
                 )
                 .first()
             )
-            
+
             if existing_metric is not None:
                 continue
 
@@ -198,6 +198,68 @@ def store_financial_metrics(ticker: str, df) -> None:
 
             existing_metric.operating_cash_flow = clean_float(row.get("operating_cash_flow"))
             existing_metric.free_cash_flow = clean_float(row.get("free_cash_flow"))
+
+        session.commit()
+
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise e
+
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------
+# SEC filings storage
+# ---------------------------------------------------------------------
+
+
+def store_sec_filings(ticker: str, df) -> None:
+    """Store SEC filing metadata and raw text for an existing company."""
+
+    session = SessionLocal()
+
+    try:
+        ticker = ticker.upper().strip()
+
+        company = (
+            session.query(Company)
+            .filter(Company.ticker == ticker)
+            .first()
+        )
+
+        if company is None:
+            raise ValueError(
+                f"Company '{ticker}' not found. Store company metadata first."
+            )
+
+        company_id = company.id
+
+        # SEC filing ingestion also gives reliable CIK data.
+        if not df.empty and "cik" in df.columns and not pd.isna(df.iloc[0]["cik"]):
+            company.cik = str(df.iloc[0]["cik"])
+
+        for _, row in df.iterrows():
+            accession_number = row.get("accession_number")
+
+            existing_filing = (
+                session.query(Filing)
+                .filter(Filing.accession_number == accession_number)
+                .first()
+            )
+
+            if existing_filing is None:
+                existing_filing = Filing(
+                    company_id=company_id,
+                    accession_number=accession_number,
+                )
+                session.add(existing_filing)
+
+            existing_filing.filing_type = row.get("filing_type")
+            existing_filing.filing_date = pd.to_datetime(row["filing_date"]).date()
+            existing_filing.filing_url = row.get("filing_url")
+            existing_filing.raw_text = row.get("raw_text")
+            existing_filing.summary = row.get("summary")
 
         session.commit()
 
