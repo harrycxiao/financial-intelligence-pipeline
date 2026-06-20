@@ -2,12 +2,14 @@ from src.ingestion.company_ingestion import fetch_company_metadata
 from src.ingestion.market_data_ingestion import fetch_market_data
 from src.ingestion.financial_metrics_ingestion import fetch_financial_metrics
 from src.ingestion.sec_ingestion import fetch_sec_filings
+from src.ingestion.news_ingestion import fetch_news_articles
 
 from src.database.store import (
     store_company,
     store_market_data,
     store_financial_metrics,
     store_sec_filings,
+    store_news_articles,
 )
 
 
@@ -83,8 +85,27 @@ def test_sec_filings_ingestion_and_storage() -> None:
     print(df[["ticker", "filing_type", "filing_date", "accession_number", "filing_url"]])
 
 
+# ---------------------------------------------------------------------
+# News articles ingestion + storage test
+# ---------------------------------------------------------------------
+
+
+def test_news_articles_ingestion_and_storage() -> None:
+    metadata = fetch_company_metadata(TEST_TICKER)
+    store_company(metadata)
+
+    df = fetch_news_articles(TEST_TICKER)
+    store_news_articles(TEST_TICKER, df)
+
+    print("News articles stored:")
+    print(f"Ticker: {TEST_TICKER}")
+    print(f"Rows fetched: {len(df)}")
+    print(df[["ticker", "published_at", "source", "title", "url"]])
+
+
 if __name__ == "__main__":
     test_company_ingestion_and_storage()
     test_market_data_ingestion_and_storage()
     test_financial_metrics_ingestion_and_storage()
     test_sec_filings_ingestion_and_storage()
+    test_news_articles_ingestion_and_storage()

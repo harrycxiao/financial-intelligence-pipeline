@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.connection import SessionLocal
-from src.database.models import Company, Filing, FinancialMetric, MarketPrice
+from src.database.models import Company, Filing, FinancialMetric, MarketPrice, NewsArticle
 
 
 def clean_float(value):
@@ -260,6 +260,68 @@ def store_sec_filings(ticker: str, df) -> None:
             existing_filing.filing_url = row.get("filing_url")
             existing_filing.raw_text = row.get("raw_text")
             existing_filing.summary = row.get("summary")
+
+        session.commit()
+
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise e
+
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------
+# News articles storage
+# ---------------------------------------------------------------------
+
+
+def store_news_articles(ticker: str, df) -> None:
+    """Store recent company news articles for an existing company."""
+
+    session = SessionLocal()
+
+    try:
+        ticker = ticker.upper().strip()
+
+        company = (
+            session.query(Company)
+            .filter(Company.ticker == ticker)
+            .first()
+        )
+
+        if company is None:
+            raise ValueError(
+                f"Company '{ticker}' not found. Store company metadata first."
+            )
+
+        company_id = company.id
+
+        for _, row in df.iterrows():
+            url = row.get("url")
+
+            existing_article = (
+                session.query(NewsArticle)
+                .filter(NewsArticle.url == url)
+                .first()
+            )
+
+            if existing_article is not None:
+                continue
+
+            article = NewsArticle(
+                company_id=company_id,
+                title=row.get("title"),
+                source=row.get("source"),
+                author=row.get("author"),
+                published_at=row.get("published_at"),
+                url=url,
+                raw_text=row.get("raw_text"),
+                summary=row.get("summary"),
+                sentiment_score=clean_float(row.get("sentiment_score")),
+            )
+
+            session.add(article)
 
         session.commit()
 
