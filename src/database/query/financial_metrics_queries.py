@@ -103,7 +103,7 @@ def get_financial_metrics_between_years(
                 FinancialMetric.fiscal_year >= start_year,
                 FinancialMetric.fiscal_year <= end_year,
             )
-            .order_by(FinancialMetric.fiscal_year)
+            .order_by(FinancialMetric.fiscal_year.desc())
             .all()
         )
 
