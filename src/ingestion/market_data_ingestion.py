@@ -14,6 +14,9 @@ def fetch_market_data(
     ticker = ticker.upper().strip()
     stock = yf.Ticker(ticker)
 
+    info = stock.info
+    shares_outstanding = info.get("sharesOutstanding")
+
     data = stock.history(
         period=period,
         interval=interval,
@@ -49,6 +52,7 @@ def fetch_market_data(
 
     data = data[expected_columns]
     data["ticker"] = ticker
+    data["shares_outstanding"] = int(shares_outstanding) if shares_outstanding is not None else None
 
     return data
 

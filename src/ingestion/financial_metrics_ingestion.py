@@ -31,6 +31,31 @@ US_GAAP_TAGS = {
         "PaymentsToAcquirePropertyPlantAndEquipment",
         "PaymentsToAcquireProductiveAssets",
     ],
+    "depreciation_and_amortization": [
+        "DepreciationDepletionAndAmortization",
+        "DepreciationDepletionAndAmortizationExpense",
+        "DepreciationAmortizationAndAccretionNet",
+    ],
+    "r_and_d_expense": [
+        "ResearchAndDevelopmentExpense",
+    ],
+    "sga_expense": [
+        "SellingGeneralAndAdministrativeExpense",
+    ],
+    "current_assets": ["AssetsCurrent"],
+    "current_liabilities": ["LiabilitiesCurrent"],
+    "inventory": ["InventoryNet"],
+    "accounts_receivable": [
+        "AccountsReceivableNetCurrent",
+        "ReceivablesNetCurrent",
+    ],
+    "accounts_payable": ["AccountsPayableCurrent"],
+    "interest_expense": ["InterestExpenseNonOperating", "InterestExpense"],
+    "income_tax_expense": ["IncomeTaxExpenseBenefit"],
+    "dividends_paid": [
+        "PaymentsOfDividends",
+        "PaymentsOfDividendsCommonStock",
+    ],
 }
 
 DEBT_TAGS = [
@@ -41,6 +66,15 @@ DEBT_TAGS = [
     "LongTermDebtAndFinanceLeaseObligationsCurrent",
     "LongTermDebtAndFinanceLeaseObligationsNoncurrent",
 ]
+
+SHARE_TAGS = {
+    "weighted_average_shares": [
+        "WeightedAverageNumberOfSharesOutstandingBasic",
+    ],
+    "weighted_average_diluted_shares": [
+        "WeightedAverageNumberOfDilutedSharesOutstanding",
+    ],
+}
 
 
 def get_cik_for_ticker(ticker: str) -> Optional[str]:
@@ -173,6 +207,49 @@ def get_total_debt(
 
     return total_debt if found_any_debt else None
 
+
+def extract_share_facts(company_facts: dict, us_gaap_tag: str) -> list[dict]:
+    """Extract share-count facts for one US-GAAP tag."""
+
+    units = (
+        company_facts
+        .get("facts", {})
+        .get("us-gaap", {})
+        .get(us_gaap_tag, {})
+        .get("units", {})
+    )
+
+    return units.get("shares", []) or units.get("Shares", [])
+
+def get_latest_share_value(
+    company_facts: dict,
+    possible_tags: list,
+    fiscal_year: int,
+    fiscal_period: str,
+    period_end_date: str,
+) -> Optional[float]:
+    """Try multiple share-count tags and return the first matching value."""
+
+    for tag in possible_tags:
+        facts = extract_share_facts(company_facts, tag)
+
+        candidates = [
+            fact
+            for fact in facts
+            if (
+                fact.get("fy") == fiscal_year
+                and fact.get("fp") == fiscal_period
+                and fact.get("end") == period_end_date
+            )
+        ]
+
+        if candidates:
+            latest = max(candidates, key=lambda fact: fact.get("filed", ""))
+            if latest.get("val") is not None:
+                return float(latest["val"])
+
+    return None
+
 def get_reporting_periods(company_facts: dict, years_back: int = 5) -> list[dict]:
     """
     Find recent annual reporting periods and remove SEC comparative duplicates.
@@ -262,6 +339,15 @@ def fetch_financial_metrics(ticker: str, years_back: int = 5) -> pd.DataFrame:
                 period_end_date=period_end_date,
             )
 
+        for metric_name, possible_tags in SHARE_TAGS.items():
+            row[metric_name] = get_latest_share_value(
+                company_facts=company_facts,
+                possible_tags=possible_tags,
+                fiscal_year=fiscal_year,
+                fiscal_period=fiscal_period,
+                period_end_date=period_end_date,
+            )
+
         row["total_debt"] = get_total_debt(
             company_facts=company_facts,
             fiscal_year=fiscal_year,
@@ -276,8 +362,6 @@ def fetch_financial_metrics(ticker: str, years_back: int = 5) -> pd.DataFrame:
             row["free_cash_flow"] = operating_cash_flow - abs(capital_expenditures)
         else:
             row["free_cash_flow"] = None
-
-        row.pop("capital_expenditures", None)
 
         rows.append(row)
 

@@ -22,6 +22,7 @@ def market_price_to_dict(price: MarketPrice) -> dict:
         "adjusted_close": price.adjusted_close,
         "volume": price.volume,
         "created_at": price.created_at,
+        "shares_outstanding": price.shares_outstanding,
     }
 
 

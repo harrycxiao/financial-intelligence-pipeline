@@ -27,6 +27,20 @@ def financial_metric_to_dict(metric: FinancialMetric) -> dict:
         "operating_cash_flow": metric.operating_cash_flow,
         "free_cash_flow": metric.free_cash_flow,
         "created_at": metric.created_at,
+        "capital_expenditures": metric.capital_expenditures,
+        "depreciation_and_amortization": metric.depreciation_and_amortization,
+        "r_and_d_expense": metric.r_and_d_expense,
+        "sga_expense": metric.sga_expense,
+        "current_assets": metric.current_assets,
+        "current_liabilities": metric.current_liabilities,
+        "inventory": metric.inventory,
+        "accounts_receivable": metric.accounts_receivable,
+        "accounts_payable": metric.accounts_payable,
+        "interest_expense": metric.interest_expense,
+        "income_tax_expense": metric.income_tax_expense,
+        "dividends_paid": metric.dividends_paid,
+        "weighted_average_shares": metric.weighted_average_shares,
+        "weighted_average_diluted_shares": metric.weighted_average_diluted_shares,
     }
 
 

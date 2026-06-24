@@ -116,6 +116,9 @@ def store_market_data(ticker: str, df) -> None:
                 close=clean_float(row["close"]),
                 adjusted_close=clean_float(row["adjusted_close"]),
                 volume=int(row["volume"]) if not pd.isna(row["volume"]) else None,
+                shares_outstanding=int(row["shares_outstanding"])
+                if "shares_outstanding" in row and not pd.isna(row["shares_outstanding"])
+                else None,
             )
 
             session.add(market_price)
@@ -198,6 +201,24 @@ def store_financial_metrics(ticker: str, df) -> None:
 
             existing_metric.operating_cash_flow = clean_float(row.get("operating_cash_flow"))
             existing_metric.free_cash_flow = clean_float(row.get("free_cash_flow"))
+
+            existing_metric.capital_expenditures = clean_float(row.get("capital_expenditures"))
+            existing_metric.depreciation_and_amortization = clean_float(row.get("depreciation_and_amortization"))
+            existing_metric.r_and_d_expense = clean_float(row.get("r_and_d_expense"))
+            existing_metric.sga_expense = clean_float(row.get("sga_expense"))
+
+            existing_metric.current_assets = clean_float(row.get("current_assets"))
+            existing_metric.current_liabilities = clean_float(row.get("current_liabilities"))
+            existing_metric.inventory = clean_float(row.get("inventory"))
+            existing_metric.accounts_receivable = clean_float(row.get("accounts_receivable"))
+            existing_metric.accounts_payable = clean_float(row.get("accounts_payable"))
+
+            existing_metric.interest_expense = clean_float(row.get("interest_expense"))
+            existing_metric.income_tax_expense = clean_float(row.get("income_tax_expense"))
+            existing_metric.dividends_paid = clean_float(row.get("dividends_paid"))
+
+            existing_metric.weighted_average_shares = clean_float(row.get("weighted_average_shares"))
+            existing_metric.weighted_average_diluted_shares = clean_float(row.get("weighted_average_diluted_shares"))
 
         session.commit()
 
