@@ -7,6 +7,7 @@ from src.analytics.derived_metrics.fundamental_analysis import (
     calculate_growth,
     get_financial_metrics_dataframe,
     safe_divide,
+    get_latest_market_cap,
 )
 
 from src.analytics.derived_metrics.market_analysis import (
