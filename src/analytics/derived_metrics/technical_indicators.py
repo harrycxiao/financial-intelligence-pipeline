@@ -54,7 +54,11 @@ def add_macd(
     return df
 
 
-def add_bollinger_bands(df: pd.DataFrame, window: int = 20, num_std: float = 2.0) -> pd.DataFrame:
+def add_bollinger_bands(
+    df: pd.DataFrame,
+    window: int = 20,
+    num_std: float = 2.0,
+) -> pd.DataFrame:
     """Add Bollinger Band columns."""
 
     rolling_mean = df["price"].rolling(window=window).mean()
@@ -107,10 +111,25 @@ def calculate_latest_technical_snapshot(ticker: str) -> dict:
 
     latest = df.iloc[-1]
 
+    volume = latest.get("volume")
+    volume_sma_20 = latest.get("volume_sma_20")
+
+    volume_ratio = None
+
+    if (
+        volume is not None
+        and volume_sma_20 is not None
+        and pd.notna(volume)
+        and pd.notna(volume_sma_20)
+        and volume_sma_20 != 0
+    ):
+        volume_ratio = float(volume) / float(volume_sma_20)
+        
     return {
         "ticker": ticker.upper().strip(),
         "date": latest["date"],
         "price": latest["price"],
+        "volume": volume,
         "sma_20": latest.get("sma_20"),
         "sma_50": latest.get("sma_50"),
         "sma_200": latest.get("sma_200"),
@@ -123,5 +142,6 @@ def calculate_latest_technical_snapshot(ticker: str) -> dict:
         "bollinger_middle_20": latest.get("bollinger_middle_20"),
         "bollinger_upper_20": latest.get("bollinger_upper_20"),
         "bollinger_lower_20": latest.get("bollinger_lower_20"),
-        "volume_sma_20": latest.get("volume_sma_20"),
+        "volume_sma_20": volume_sma_20,
+        "volume_ratio": volume_ratio,
     }
