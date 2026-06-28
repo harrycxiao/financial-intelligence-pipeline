@@ -116,6 +116,7 @@ class FinancialMetric(Base):
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), nullable=False, index=True)
 
     period_end_date: Mapped[PythonDate] = mapped_column(Date, nullable=False, index=True)
+    filed_date: Mapped[Optional[PythonDate]] = mapped_column(Date, nullable=True, index=True)
     fiscal_year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     fiscal_period: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 

@@ -14,6 +14,7 @@ def financial_metric_to_dict(metric: FinancialMetric) -> dict:
         "financial_metric_id": metric.id,
         "company_id": metric.company_id,
         "period_end_date": metric.period_end_date,
+        "filed_date": metric.filed_date,
         "fiscal_year": metric.fiscal_year,
         "fiscal_period": metric.fiscal_period,
         "revenue": metric.revenue,

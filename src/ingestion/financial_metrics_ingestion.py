@@ -1,6 +1,7 @@
 # src/ingestion/financial_metrics_ingestion.py
 
 from typing import Optional
+from datetime import datetime
 
 import pandas as pd
 import requests
@@ -121,6 +122,9 @@ def extract_usd_facts(company_facts: dict, us_gaap_tag: str) -> list[dict]:
 
     return facts
 
+from datetime import datetime
+
+
 def get_latest_fact(
     company_facts: dict,
     tag: str,
@@ -131,8 +135,8 @@ def get_latest_fact(
     """
     Find the latest filed SEC fact matching one exact fiscal period.
 
-    Matching period_end_date is important because SEC companyfacts can include
-    comparative prior-year facts inside newer filings.
+    For quarterly periods, prefer quarter-specific facts over year-to-date
+    facts by selecting the shortest reporting duration.
     """
 
     facts = extract_usd_facts(company_facts, tag)
@@ -150,7 +154,35 @@ def get_latest_fact(
     if not candidates:
         return None
 
-    return max(candidates, key=lambda fact: fact.get("filed", ""))
+    # Quarterly reports can contain both quarter-only and year-to-date values.
+    # Prefer the shortest reporting period, then the latest filing.
+    if fiscal_period in {"Q1", "Q2", "Q3", "Q4"}:
+
+        def duration_days(fact):
+            start = fact.get("start")
+
+            if start is None:
+                return float("inf")
+
+            start = datetime.fromisoformat(start)
+            end = datetime.fromisoformat(fact["end"])
+
+            return (end - start).days
+
+        # Step 1: Put the newest filings first.
+        candidates.sort(key=lambda fact: fact.get("filed", ""), reverse=True)
+
+        # Step 2: Stable sort by duration.
+        # Python's sort is stable, so if two facts have the same duration,
+        # the newer filing from Step 1 remains first.
+        candidates.sort(key=duration_days)
+
+        return candidates[0]
+
+    return max(
+        candidates,
+        key=lambda fact: fact.get("filed", ""),
+    )
 
 def get_latest_fact_value(
     company_facts: dict,
@@ -250,18 +282,20 @@ def get_latest_share_value(
 
     return None
 
-def get_reporting_periods(company_facts: dict, years_back: int = 5) -> list[dict]:
+def get_reporting_periods(company_facts: dict, years_back: int = 5, include_quarterly: bool = True) -> list[dict]:
     """
-    Find recent annual reporting periods and remove SEC comparative duplicates.
+    Find recent annual and quarterly reporting periods and remove SEC comparative duplicates.
     """
 
     periods = []
+
+    allowed_periods = {"FY", "Q1", "Q2", "Q3", "Q4"} if include_quarterly else {"FY"}
 
     for tag in US_GAAP_TAGS["revenue"]:
         facts = extract_usd_facts(company_facts, tag)
 
         for fact in facts:
-            if fact.get("fp") == "FY" and fact.get("fy") is not None and fact.get("end") is not None:
+            if fact.get("fp") in allowed_periods and fact.get("fy") is not None and fact.get("end") is not None:
                 periods.append(
                     {
                         "fiscal_year": fact["fy"],
@@ -296,11 +330,12 @@ def get_reporting_periods(company_facts: dict, years_back: int = 5) -> list[dict
         reverse=True,
     )
 
-    return sorted_periods[:years_back]
+    max_periods = years_back * 4 if include_quarterly else years_back
+    return sorted_periods[:max_periods]
 
-def fetch_financial_metrics(ticker: str, years_back: int = 5) -> pd.DataFrame:
+def fetch_financial_metrics(ticker: str, years_back: int = 5, include_quarterly: bool = True) -> pd.DataFrame:
     """
-    Fetch recent annual financial metrics from SEC companyfacts.
+    Fetch recent annual and quarterly financial metrics from SEC companyfacts.
 
     Returns one row per fiscal year.
     """
@@ -313,7 +348,7 @@ def fetch_financial_metrics(ticker: str, years_back: int = 5) -> pd.DataFrame:
         raise ValueError(f"No CIK found for ticker: {ticker}")
 
     company_facts = fetch_company_facts(cik)
-    periods = get_reporting_periods(company_facts, years_back=years_back)
+    periods = get_reporting_periods(company_facts, years_back=years_back, include_quarterly=include_quarterly)
 
     rows = []
 
@@ -326,6 +361,7 @@ def fetch_financial_metrics(ticker: str, years_back: int = 5) -> pd.DataFrame:
             "ticker": ticker,
             "cik": cik,
             "period_end_date": period_end_date,
+            "filed_date": period.get("filed", ""),
             "fiscal_year": fiscal_year,
             "fiscal_period": fiscal_period,
         }

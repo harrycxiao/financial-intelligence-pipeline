@@ -1,5 +1,8 @@
 # src/analytics/derived_metrics/technical_indicators.py
 
+from datetime import date
+from typing import Optional
+
 import pandas as pd
 
 from src.analytics.derived_metrics.market_analysis import get_price_dataframe
@@ -78,10 +81,16 @@ def add_volume_moving_average(df: pd.DataFrame, window: int = 20) -> pd.DataFram
     return df
 
 
-def calculate_technical_indicators(ticker: str) -> pd.DataFrame:
+def calculate_technical_indicators(
+    ticker: str,
+    as_of_date: Optional[date] = None,
+) -> pd.DataFrame:
     """Calculate common technical indicators from stored market data."""
 
-    df = get_price_dataframe(ticker)
+    df = get_price_dataframe(
+        ticker,
+        as_of_date=as_of_date,
+    )
 
     if df.empty:
         return df
@@ -101,10 +110,16 @@ def calculate_technical_indicators(ticker: str) -> pd.DataFrame:
     return df
 
 
-def calculate_latest_technical_snapshot(ticker: str) -> dict:
+def calculate_latest_technical_snapshot(
+    ticker: str,
+    as_of_date: Optional[date] = None,
+) -> dict:
     """Return the latest technical indicator values for a ticker."""
 
-    df = calculate_technical_indicators(ticker)
+    df = calculate_technical_indicators(
+        ticker,
+        as_of_date=as_of_date,
+    )
 
     if df.empty:
         return {"ticker": ticker.upper().strip(), "technical_indicators": None}

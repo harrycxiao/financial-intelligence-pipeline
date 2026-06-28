@@ -139,7 +139,7 @@ def store_market_data(ticker: str, df) -> None:
 
 
 def store_financial_metrics(ticker: str, df) -> None:
-    """Store annual financial metrics for an existing company."""
+    """Store annual and quarterly financial metrics for an existing company."""
 
     session = SessionLocal()
 
@@ -165,6 +165,11 @@ def store_financial_metrics(ticker: str, df) -> None:
 
         for _, row in df.iterrows():
             period_end_date = pd.to_datetime(row["period_end_date"]).date()
+            filed_date = (
+                pd.to_datetime(row["filed_date"]).date()
+                if "filed_date" in row and not pd.isna(row["filed_date"])
+                else None
+            )
             fiscal_period = row.get("fiscal_period")
 
             existing_metric = (
@@ -184,10 +189,12 @@ def store_financial_metrics(ticker: str, df) -> None:
                 existing_metric = FinancialMetric(
                     company_id=company_id,
                     period_end_date=period_end_date,
+                    filed_date=filed_date,
                     fiscal_period=fiscal_period,
                 )
                 session.add(existing_metric)
 
+            existing_metric.filed_date = filed_date
             existing_metric.fiscal_year = int(row["fiscal_year"]) if not pd.isna(row["fiscal_year"]) else None
             existing_metric.revenue = clean_float(row.get("revenue"))
             existing_metric.net_income = clean_float(row.get("net_income"))

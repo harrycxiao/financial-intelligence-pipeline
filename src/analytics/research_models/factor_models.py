@@ -1,5 +1,6 @@
 # src/analytics/research_models/factor_models.py
 
+from datetime import date
 from typing import Optional
 
 import pandas as pd
@@ -130,7 +131,10 @@ def calculate_rsi_score(rsi: Optional[float]) -> Optional[float]:
     return 10.0
 
 
-def build_factor_dataset(tickers: list) -> pd.DataFrame:
+def build_factor_dataset(
+    tickers: list,
+    as_of_date: Optional[date] = None,
+) -> pd.DataFrame:
     """Build one raw factor row per ticker."""
 
     rows = []
@@ -138,11 +142,20 @@ def build_factor_dataset(tickers: list) -> pd.DataFrame:
     for ticker in tickers:
         ticker = ticker.upper().strip()
 
-        fundamental_summary = calculate_fundamental_summary(ticker)
+        fundamental_summary = calculate_fundamental_summary(
+            ticker,
+            as_of_date=as_of_date,
+        )
         latest_fundamentals = fundamental_summary.get("latest_metrics") or {}
 
-        market_summary = calculate_market_summary(ticker)
-        technical_snapshot = calculate_latest_technical_snapshot(ticker)
+        market_summary = calculate_market_summary(
+            ticker,
+            as_of_date=as_of_date,
+        )
+        technical_snapshot = calculate_latest_technical_snapshot(
+            ticker,
+            as_of_date=as_of_date,
+        )
 
         price = clean_value(technical_snapshot.get("price"))
         sma_50 = clean_value(technical_snapshot.get("sma_50"))
@@ -251,10 +264,16 @@ def build_factor_dataset(tickers: list) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def calculate_factor_scores(tickers: list) -> pd.DataFrame:
+def calculate_factor_scores(
+    tickers: list,
+    as_of_date: Optional[date] = None,
+) -> pd.DataFrame:
     """Calculate cross-sectional factor scores for a ticker universe."""
 
-    df = build_factor_dataset(tickers)
+    df = build_factor_dataset(
+        tickers,
+        as_of_date=as_of_date,
+    )
 
     if df.empty:
         return df
@@ -370,10 +389,17 @@ def calculate_factor_scores(tickers: list) -> pd.DataFrame:
     return df.sort_values("overall_score", ascending=False).reset_index(drop=True)
 
 
-def rank_companies(tickers: list) -> list:
+def rank_companies(
+    tickers: list,
+    as_of_date: Optional[date] = None,
+) -> list:
+
     """Return ranked factor scores as dictionaries."""
 
-    scores = calculate_factor_scores(tickers)
+    scores = calculate_factor_scores(
+        tickers,
+        as_of_date=as_of_date,
+    )
 
     if scores.empty:
         return []
@@ -381,13 +407,20 @@ def rank_companies(tickers: list) -> list:
     return scores.to_dict(orient="records")
 
 
-def get_company_factor_profile(ticker: str, peer_tickers: list) -> dict:
+def get_company_factor_profile(
+    ticker: str,
+    peer_tickers: list,
+    as_of_date: Optional[date] = None,
+) -> dict:
     """Return one company's factor profile relative to a peer universe."""
 
     ticker = ticker.upper().strip()
     tickers = list(set([ticker] + [peer.upper().strip() for peer in peer_tickers]))
 
-    scores = calculate_factor_scores(tickers)
+    scores = calculate_factor_scores(
+        tickers,
+        as_of_date=as_of_date,
+    )
 
     if scores.empty:
         return {}
