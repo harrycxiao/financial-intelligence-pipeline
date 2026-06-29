@@ -1,3 +1,5 @@
+#tests/test_ingestion.py
+
 from src.ingestion.company_ingestion import fetch_company_metadata
 from src.ingestion.market_data_ingestion import fetch_market_data
 from src.ingestion.financial_metrics_ingestion import fetch_financial_metrics
