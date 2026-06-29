@@ -233,6 +233,7 @@ def select_portfolio_candidates(
     score_column: str = "overall_score",
     two_stage: bool = True,
     minimum_return_rows: int = 252,
+    period_mode: str = "quarterly",
 ) -> list:
     """
     Select portfolio candidates from a larger ticker universe.
@@ -256,6 +257,7 @@ def select_portfolio_candidates(
     first_scores = calculate_factor_scores(
         eligible_tickers,
         as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     if first_scores.empty or score_column not in first_scores.columns:
@@ -278,6 +280,7 @@ def select_portfolio_candidates(
     second_scores = calculate_factor_scores(
         screened_tickers,
         as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     if second_scores.empty or score_column not in second_scores.columns:
@@ -350,6 +353,7 @@ def build_portfolio_weights(
     method_name: str,
     tickers: list,
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
     top_n: int = 5,
     score_column: str = "overall_score",
     risk_column: str = "annualized_volatility",
@@ -382,6 +386,7 @@ def build_portfolio_weights(
             n=top_n,
             score_column=score_column,
             as_of_date=as_of_date,
+            period_mode=period_mode,
         )
 
     if method == "score_weighted":
@@ -390,6 +395,7 @@ def build_portfolio_weights(
             score_column=score_column,
             top_n=top_n,
             as_of_date=as_of_date,
+            period_mode=period_mode,
         )
 
     if method == "risk_adjusted_score_weighted":
@@ -399,6 +405,7 @@ def build_portfolio_weights(
             risk_column=risk_column,
             top_n=top_n,
             as_of_date=as_of_date,
+            period_mode=period_mode,
         )
 
     if method == "minimum_variance":
@@ -429,6 +436,7 @@ def build_portfolio_weights(
             covariance_method=covariance_method,
             ewma_span=ewma_span,
             as_of_date=as_of_date,
+            period_mode=period_mode,
         )
 
     if method == "mean_variance":
@@ -444,6 +452,7 @@ def build_portfolio_weights(
             covariance_method=covariance_method,
             ewma_span=ewma_span,
             as_of_date=as_of_date,
+            period_mode=period_mode,
         )
 
     if method == "risk_parity":
@@ -468,6 +477,7 @@ def build_portfolio_weights(
             score_column=score_column,
             return_risk_metric=hrp_return_risk_metric,
             as_of_date=as_of_date,
+            period_mode=period_mode,
         )
 
     raise ValueError(f"Unknown portfolio method: {method_name}")
@@ -523,6 +533,7 @@ def backtest_portfolio_method(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
     initial_value: float = 1.0,
     risk_free_rate: float = 0.0,
     trading_days: int = 252,
@@ -551,6 +562,7 @@ def backtest_portfolio_method(
         method_name=method_name,
         tickers=tickers,
         as_of_date=as_of_date,
+        period_mode=period_mode,
         top_n=top_n,
         score_column=score_column,
         risk_column=risk_column,
@@ -593,6 +605,7 @@ def compare_portfolio_methods_backtest(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
     initial_value: float = 1.0,
     risk_free_rate: float = 0.0,
     trading_days: int = 252,
@@ -630,6 +643,7 @@ def compare_portfolio_methods_backtest(
                 start_date=start_date,
                 end_date=end_date,
                 as_of_date=as_of_date,
+                period_mode=period_mode,
                 initial_value=initial_value,
                 risk_free_rate=risk_free_rate,
                 trading_days=trading_days,
@@ -709,189 +723,57 @@ def backtest_rebalanced_portfolio_method(
     hrp_return_risk_metric: str = "volatility",
 ) -> dict:
     """
-    Run a rolling point-in-time backtest.
+    Run a rolling point-in-time backtest for one method.
 
-    Each rebalance:
-    1. Select candidates from the full universe as of the rebalance date.
-    2. Build weights using only data available as of the rebalance date.
-    3. Hold those weights through the next rebalance window.
+    This wrapper is kept for single-method use.
+    For multi-method comparisons, use compare_rebalanced_portfolio_methods_backtest(),
+    which avoids recomputing selected candidates for each method.
     """
 
-    periods = generate_rebalance_periods(
+    comparison = compare_rebalanced_portfolio_methods_backtest(
+        universe_tickers=universe_tickers,
+        methods=[method_name],
         start_date=start_date,
         end_date=end_date,
-        months=rebalance_months,
+        rebalance_months=rebalance_months,
+        initial_value=initial_value,
+        risk_free_rate=risk_free_rate,
+        trading_days=trading_days,
+        top_screen_n=top_screen_n,
+        final_portfolio_n=final_portfolio_n,
+        two_stage_selection=two_stage_selection,
+        minimum_return_rows=minimum_return_rows,
+        top_n=top_n,
+        score_column=score_column,
+        risk_column=risk_column,
+        covariance_method=covariance_method,
+        ewma_span=ewma_span,
+        max_weight=max_weight,
+        long_only=long_only,
+        max_abs_weight=max_abs_weight,
+        exposure_mode=exposure_mode,
+        target_gross_exposure=target_gross_exposure,
+        target_net_exposure=target_net_exposure,
+        risk_aversion=risk_aversion,
+        risk_free_signal=risk_free_signal,
+        risk_parity_max_iterations=risk_parity_max_iterations,
+        risk_parity_tolerance=risk_parity_tolerance,
+        hrp_linkage_method=hrp_linkage_method,
+        hrp_use_expected_return_signal=hrp_use_expected_return_signal,
+        hrp_return_risk_metric=hrp_return_risk_metric,
     )
 
-    all_period_returns = []
-    rebalance_history = []
-    current_value = initial_value
-
-    for period in periods:
-        as_of = period["as_of_date"]
-        period_start = period["start_date"]
-        period_end = period["end_date"]
-
-        selected_tickers = select_portfolio_candidates(
-            universe_tickers=universe_tickers,
-            as_of_date=as_of,
-            top_screen_n=top_screen_n,
-            final_portfolio_n=final_portfolio_n,
-            score_column=score_column,
-            two_stage=two_stage_selection,
-            minimum_return_rows=minimum_return_rows,
-        )
-
-        if not selected_tickers:
-            rebalance_history.append(
-                {
-                    "as_of_date": as_of,
-                    "start_date": period_start,
-                    "end_date": period_end,
-                    "selected_tickers": [],
-                    "weights": {},
-                    "period_return": None,
-                    "ending_value": current_value,
-                    "error": "No selected tickers.",
-                }
-            )
-            continue
-
-        weights = build_portfolio_weights(
-            method_name=method_name,
-            tickers=selected_tickers,
-            as_of_date=as_of,
-            top_n=min(top_n, len(selected_tickers)),
-            score_column=score_column,
-            risk_column=risk_column,
-            covariance_method=covariance_method,
-            ewma_span=ewma_span,
-            max_weight=max_weight,
-            long_only=long_only,
-            max_abs_weight=max_abs_weight,
-            exposure_mode=exposure_mode,
-            target_gross_exposure=target_gross_exposure,
-            target_net_exposure=target_net_exposure,
-            risk_aversion=risk_aversion,
-            risk_free_signal=risk_free_signal,
-            risk_parity_max_iterations=risk_parity_max_iterations,
-            risk_parity_tolerance=risk_parity_tolerance,
-            hrp_linkage_method=hrp_linkage_method,
-            hrp_use_expected_return_signal=hrp_use_expected_return_signal,
-            hrp_return_risk_metric=hrp_return_risk_metric,
-        )
-
-        if not weights:
-            rebalance_history.append(
-                {
-                    "as_of_date": as_of,
-                    "start_date": period_start,
-                    "end_date": period_end,
-                    "selected_tickers": selected_tickers,
-                    "weights": {},
-                    "period_return": None,
-                    "ending_value": current_value,
-                    "error": "Portfolio method returned empty weights.",
-                }
-            )
-            continue
-
-        returns = get_returns_matrix(list(weights.keys()))
-        returns = filter_returns_by_date(
-            returns=returns,
-            start_date=period_start,
-            end_date=period_end,
-        )
-
-        if returns.empty:
-            rebalance_history.append(
-                {
-                    "as_of_date": as_of,
-                    "start_date": period_start,
-                    "end_date": period_end,
-                    "selected_tickers": selected_tickers,
-                    "weights": weights,
-                    "period_return": None,
-                    "ending_value": current_value,
-                    "error": "No returns during holding window.",
-                }
-            )
-            continue
-
-        period_returns = calculate_portfolio_return_series(weights, returns)
-
-        if period_returns.empty:
-            rebalance_history.append(
-                {
-                    "as_of_date": as_of,
-                    "start_date": period_start,
-                    "end_date": period_end,
-                    "selected_tickers": selected_tickers,
-                    "weights": weights,
-                    "period_return": None,
-                    "ending_value": current_value,
-                    "error": "Could not calculate portfolio returns.",
-                }
-            )
-            continue
-
-        period_equity = calculate_equity_curve(
-            portfolio_returns=period_returns,
-            initial_value=current_value,
-        )
-
-        period_return = (
-            float(period_equity.iloc[-1] / current_value - 1)
-            if current_value != 0
-            else None
-        )
-
-        current_value = float(period_equity.iloc[-1])
-        all_period_returns.append(period_returns)
-
-        rebalance_history.append(
-            {
-                "as_of_date": as_of,
-                "start_date": period_start,
-                "end_date": period_end,
-                "selected_tickers": selected_tickers,
-                "weights": weights,
-                "period_return": period_return,
-                "ending_value": current_value,
-                "error": None,
-            }
-        )
-
-    if not all_period_returns:
-        return {
+    return comparison["results"].get(
+        method_name,
+        {
             "method_name": method_name,
             "metrics": {},
             "equity_curve": [],
             "daily_returns": [],
-            "rebalance_history": rebalance_history,
-        }
-
-    full_returns = pd.concat(all_period_returns).sort_index()
-    full_returns.name = "portfolio_return"
-
-    full_equity_curve = calculate_equity_curve(
-        portfolio_returns=full_returns,
-        initial_value=initial_value,
+            "rebalance_history": [],
+            "error": "Method result not found.",
+        },
     )
-
-    metrics = calculate_backtest_metrics(
-        portfolio_returns=full_returns,
-        risk_free_rate=risk_free_rate,
-        trading_days=trading_days,
-    )
-
-    return {
-        "method_name": method_name,
-        "metrics": metrics,
-        "equity_curve": full_equity_curve.reset_index().to_dict(orient="records"),
-        "daily_returns": full_returns.reset_index().to_dict(orient="records"),
-        "rebalance_history": rebalance_history,
-    }
 
 
 def compare_rebalanced_portfolio_methods_backtest(
@@ -926,56 +808,233 @@ def compare_rebalanced_portfolio_methods_backtest(
     hrp_use_expected_return_signal: bool = True,
     hrp_return_risk_metric: str = "volatility",
 ) -> dict:
-    """Run rolling point-in-time backtests for multiple portfolio methods."""
+    """
+    Run rolling point-in-time backtests for multiple portfolio methods.
+
+    Optimized structure:
+    each rebalance date selects candidates once, then reuses the same
+    selected ticker list across all portfolio methods.
+    """
 
     if methods is None:
         methods = get_default_portfolio_methods()
 
-    results = {}
+    periods = generate_rebalance_periods(
+        start_date=start_date,
+        end_date=end_date,
+        months=rebalance_months,
+    )
+
+    method_state = {}
 
     for method_name in methods:
-        try:
-            results[method_name] = backtest_rebalanced_portfolio_method(
-                universe_tickers=universe_tickers,
-                method_name=method_name,
-                start_date=start_date,
-                end_date=end_date,
-                rebalance_months=rebalance_months,
-                initial_value=initial_value,
-                risk_free_rate=risk_free_rate,
-                trading_days=trading_days,
-                top_screen_n=top_screen_n,
-                final_portfolio_n=final_portfolio_n,
-                two_stage_selection=two_stage_selection,
-                minimum_return_rows=minimum_return_rows,
-                top_n=top_n,
-                score_column=score_column,
-                risk_column=risk_column,
-                covariance_method=covariance_method,
-                ewma_span=ewma_span,
-                max_weight=max_weight,
-                long_only=long_only,
-                max_abs_weight=max_abs_weight,
-                exposure_mode=exposure_mode,
-                target_gross_exposure=target_gross_exposure,
-                target_net_exposure=target_net_exposure,
-                risk_aversion=risk_aversion,
-                risk_free_signal=risk_free_signal,
-                risk_parity_max_iterations=risk_parity_max_iterations,
-                risk_parity_tolerance=risk_parity_tolerance,
-                hrp_linkage_method=hrp_linkage_method,
-                hrp_use_expected_return_signal=hrp_use_expected_return_signal,
-                hrp_return_risk_metric=hrp_return_risk_metric,
-            )
-        except Exception as error:
+        method_state[method_name] = {
+            "method_name": method_name,
+            "current_value": initial_value,
+            "period_returns": [],
+            "rebalance_history": [],
+            "error": None,
+        }
+
+    for period in periods:
+        as_of = period["as_of_date"]
+        period_start = period["start_date"]
+        period_end = period["end_date"]
+
+        selected_tickers = select_portfolio_candidates(
+            universe_tickers=universe_tickers,
+            as_of_date=as_of,
+            top_screen_n=top_screen_n,
+            final_portfolio_n=final_portfolio_n,
+            score_column=score_column,
+            two_stage=two_stage_selection,
+            minimum_return_rows=minimum_return_rows,
+        )
+
+        for method_name in methods:
+            state = method_state[method_name]
+            current_value = state["current_value"]
+
+            if not selected_tickers:
+                state["rebalance_history"].append(
+                    {
+                        "as_of_date": as_of,
+                        "start_date": period_start,
+                        "end_date": period_end,
+                        "selected_tickers": [],
+                        "weights": {},
+                        "period_return": None,
+                        "ending_value": current_value,
+                        "error": "No selected tickers.",
+                    }
+                )
+                continue
+
+            try:
+                weights = build_portfolio_weights(
+                    method_name=method_name,
+                    tickers=selected_tickers,
+                    as_of_date=as_of,
+                    top_n=min(top_n, len(selected_tickers)),
+                    score_column=score_column,
+                    risk_column=risk_column,
+                    covariance_method=covariance_method,
+                    ewma_span=ewma_span,
+                    max_weight=max_weight,
+                    long_only=long_only,
+                    max_abs_weight=max_abs_weight,
+                    exposure_mode=exposure_mode,
+                    target_gross_exposure=target_gross_exposure,
+                    target_net_exposure=target_net_exposure,
+                    risk_aversion=risk_aversion,
+                    risk_free_signal=risk_free_signal,
+                    risk_parity_max_iterations=risk_parity_max_iterations,
+                    risk_parity_tolerance=risk_parity_tolerance,
+                    hrp_linkage_method=hrp_linkage_method,
+                    hrp_use_expected_return_signal=hrp_use_expected_return_signal,
+                    hrp_return_risk_metric=hrp_return_risk_metric,
+                )
+
+                if not weights:
+                    state["rebalance_history"].append(
+                        {
+                            "as_of_date": as_of,
+                            "start_date": period_start,
+                            "end_date": period_end,
+                            "selected_tickers": selected_tickers,
+                            "weights": {},
+                            "period_return": None,
+                            "ending_value": current_value,
+                            "error": "Portfolio method returned empty weights.",
+                        }
+                    )
+                    continue
+
+                returns = get_returns_matrix(list(weights.keys()))
+                returns = filter_returns_by_date(
+                    returns=returns,
+                    start_date=period_start,
+                    end_date=period_end,
+                )
+
+                if returns.empty:
+                    state["rebalance_history"].append(
+                        {
+                            "as_of_date": as_of,
+                            "start_date": period_start,
+                            "end_date": period_end,
+                            "selected_tickers": selected_tickers,
+                            "weights": weights,
+                            "period_return": None,
+                            "ending_value": current_value,
+                            "error": "No returns during holding window.",
+                        }
+                    )
+                    continue
+
+                period_returns = calculate_portfolio_return_series(
+                    weights=weights,
+                    returns=returns,
+                )
+
+                if period_returns.empty:
+                    state["rebalance_history"].append(
+                        {
+                            "as_of_date": as_of,
+                            "start_date": period_start,
+                            "end_date": period_end,
+                            "selected_tickers": selected_tickers,
+                            "weights": weights,
+                            "period_return": None,
+                            "ending_value": current_value,
+                            "error": "Could not calculate portfolio returns.",
+                        }
+                    )
+                    continue
+
+                period_equity = calculate_equity_curve(
+                    portfolio_returns=period_returns,
+                    initial_value=current_value,
+                )
+
+                period_return = (
+                    float(period_equity.iloc[-1] / current_value - 1)
+                    if current_value != 0
+                    else None
+                )
+
+                current_value = float(period_equity.iloc[-1])
+                state["current_value"] = current_value
+                state["period_returns"].append(period_returns)
+
+                state["rebalance_history"].append(
+                    {
+                        "as_of_date": as_of,
+                        "start_date": period_start,
+                        "end_date": period_end,
+                        "selected_tickers": selected_tickers,
+                        "weights": weights,
+                        "period_return": period_return,
+                        "ending_value": current_value,
+                        "error": None,
+                    }
+                )
+
+            except Exception as error:
+                state["rebalance_history"].append(
+                    {
+                        "as_of_date": as_of,
+                        "start_date": period_start,
+                        "end_date": period_end,
+                        "selected_tickers": selected_tickers,
+                        "weights": {},
+                        "period_return": None,
+                        "ending_value": current_value,
+                        "error": str(error),
+                    }
+                )
+
+                if state["error"] is None:
+                    state["error"] = str(error)
+
+    results = {}
+
+    for method_name, state in method_state.items():
+        period_returns_list = state["period_returns"]
+
+        if not period_returns_list:
             results[method_name] = {
                 "method_name": method_name,
                 "metrics": {},
                 "equity_curve": [],
                 "daily_returns": [],
-                "rebalance_history": [],
-                "error": str(error),
+                "rebalance_history": state["rebalance_history"],
+                "error": state["error"],
             }
+            continue
+
+        full_returns = pd.concat(period_returns_list).sort_index()
+        full_returns.name = "portfolio_return"
+
+        full_equity_curve = calculate_equity_curve(
+            portfolio_returns=full_returns,
+            initial_value=initial_value,
+        )
+
+        metrics = calculate_backtest_metrics(
+            portfolio_returns=full_returns,
+            risk_free_rate=risk_free_rate,
+            trading_days=trading_days,
+        )
+
+        results[method_name] = {
+            "method_name": method_name,
+            "metrics": metrics,
+            "equity_curve": full_equity_curve.reset_index().to_dict(orient="records"),
+            "daily_returns": full_returns.reset_index().to_dict(orient="records"),
+            "rebalance_history": state["rebalance_history"],
+            "error": state["error"],
+        }
 
     summary = build_backtest_comparison_table(results)
 

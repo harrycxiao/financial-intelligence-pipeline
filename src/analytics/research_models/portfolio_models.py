@@ -40,7 +40,10 @@ def normalize_weights(raw_weights: pd.Series) -> dict:
     return weights.to_dict()
 
 
-def get_returns_matrix(tickers: list, as_of_date: Optional[date] = None,) -> pd.DataFrame:
+def get_returns_matrix(
+    tickers: list,
+    as_of_date: Optional[date] = None,
+) -> pd.DataFrame:
     """Create aligned daily returns matrix for multiple tickers."""
 
     returns_data = []
@@ -186,7 +189,10 @@ def get_covariance_matrix(
     )
 
 
-def get_annualized_covariance_matrix(tickers: list, as_of_date: Optional[date] = None) -> pd.DataFrame:
+def get_annualized_covariance_matrix(
+    tickers: list,
+    as_of_date: Optional[date] = None,
+) -> pd.DataFrame:
     """Backward-compatible wrapper for sample covariance."""
 
     return get_covariance_matrix(
@@ -398,6 +404,7 @@ def get_expected_return_signal(
     tickers: list,
     score_column: str = "overall_score",
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> pd.Series:
     """
     Return the current expected-return signal.
@@ -406,7 +413,11 @@ def get_expected_return_signal(
     Future: replace this function with true expected return predictions.
     """
 
-    scores = calculate_factor_scores(tickers, as_of_date=as_of_date)
+    scores = calculate_factor_scores(
+        tickers,
+        as_of_date=as_of_date,
+        period_mode=period_mode,
+    )
 
     if scores.empty or score_column not in scores.columns:
         return pd.Series(dtype=float)
@@ -660,10 +671,15 @@ def top_n_equal_weight_portfolio(
     n: int = 5,
     score_column: str = "overall_score",
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> dict:
     """Select top N stocks by factor score and equal-weight them."""
 
-    scores = calculate_factor_scores(tickers, as_of_date=as_of_date)
+    scores = calculate_factor_scores(
+        tickers,
+        as_of_date=as_of_date,
+        period_mode=period_mode,
+    )
 
     if scores.empty or score_column not in scores.columns:
         return {}
@@ -679,10 +695,15 @@ def score_weighted_portfolio(
     score_column: str = "overall_score",
     top_n: Optional[int] = None,
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> dict:
     """Allocate weights proportional to factor scores."""
 
-    scores = calculate_factor_scores(tickers, as_of_date=as_of_date)
+    scores = calculate_factor_scores(
+        tickers,
+        as_of_date=as_of_date,
+        period_mode=period_mode,
+    )
 
     if scores.empty or score_column not in scores.columns:
         return {}
@@ -706,10 +727,15 @@ def risk_adjusted_score_portfolio(
     risk_column: str = "annualized_volatility",
     top_n: Optional[int] = None,
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> dict:
     """Allocate using score divided by risk."""
 
-    scores = calculate_factor_scores(tickers, as_of_date=as_of_date)
+    scores = calculate_factor_scores(
+        tickers,
+        as_of_date=as_of_date,
+        period_mode=period_mode,
+    )
 
     if scores.empty or score_column not in scores.columns or risk_column not in scores.columns:
         return {}
@@ -797,6 +823,7 @@ def maximum_sharpe_portfolio(
     covariance_method: str = "sample",
     ewma_span: int = 60,
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> dict:
     """Create a maximum Sharpe-style portfolio."""
 
@@ -815,7 +842,8 @@ def maximum_sharpe_portfolio(
     expected_return_signal = get_expected_return_signal(
         tickers=clean_tickers,
         score_column=score_column,
-        as_of_date=as_of_date
+        as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     common_tickers = [
@@ -863,6 +891,7 @@ def mean_variance_portfolio(
     covariance_method: str = "sample",
     ewma_span: int = 60,
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> dict:
     """Create a mean-variance-style portfolio."""
 
@@ -874,7 +903,7 @@ def mean_variance_portfolio(
         tickers=clean_tickers,
         covariance_method=covariance_method,
         ewma_span=ewma_span,
-        as_of_date=as_of_date
+        as_of_date=as_of_date,
     )
 
     if covariance_matrix.empty:
@@ -883,7 +912,8 @@ def mean_variance_portfolio(
     expected_return_signal = get_expected_return_signal(
         tickers=clean_tickers,
         score_column=score_column,
-        as_of_date=as_of_date
+        as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     common_tickers = [
@@ -938,7 +968,7 @@ def risk_parity_portfolio(
         tickers=clean_tickers,
         covariance_method=covariance_method,
         ewma_span=ewma_span,
-        as_of_date=as_of_date
+        as_of_date=as_of_date,
     )
 
     if covariance_matrix.empty:
@@ -994,6 +1024,7 @@ def hierarchical_risk_parity_portfolio(
     score_column: str = "overall_score",
     return_risk_metric: str = "volatility",
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> dict:
     """Create a long-only hierarchical risk parity portfolio."""
 
@@ -1003,7 +1034,7 @@ def hierarchical_risk_parity_portfolio(
         tickers=clean_tickers,
         covariance_method=covariance_method,
         ewma_span=ewma_span,
-        as_of_date=as_of_date
+        as_of_date=as_of_date,
     )
 
     if covariance_matrix.empty:
@@ -1020,7 +1051,8 @@ def hierarchical_risk_parity_portfolio(
         expected_return_signal = get_expected_return_signal(
             tickers=ordered_tickers,
             score_column=score_column,
-            as_of_date=as_of_date
+            as_of_date=as_of_date,
+            period_mode=period_mode,
         )
 
     distance_matrix = get_correlation_distance(covariance_matrix)
@@ -1060,7 +1092,7 @@ def calculate_portfolio_performance(
     weights: dict,
     risk_free_rate: float = 0.0,
     trading_days: int = 252,
-    as_of_date: Optional[date] = None
+    as_of_date: Optional[date] = None,
 ) -> dict:
     """Calculate historical annual return, volatility, and excess-return Sharpe."""
 
@@ -1134,6 +1166,7 @@ def compare_basic_portfolios(
     hrp_use_expected_return_signal: bool = True,
     hrp_return_risk_metric: str = "volatility",
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> dict:
     """Compare portfolio construction methods with shared configurable parameters."""
 
@@ -1144,6 +1177,7 @@ def compare_basic_portfolios(
         n=top_n,
         score_column=score_column,
         as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     score_weights = score_weighted_portfolio(
@@ -1151,6 +1185,7 @@ def compare_basic_portfolios(
         score_column=score_column,
         top_n=top_n,
         as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     risk_adjusted_weights = risk_adjusted_score_portfolio(
@@ -1159,6 +1194,7 @@ def compare_basic_portfolios(
         risk_column=risk_column,
         top_n=top_n,
         as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     minimum_variance_weights = minimum_variance_portfolio(
@@ -1171,7 +1207,7 @@ def compare_basic_portfolios(
         target_net_exposure=target_net_exposure,
         covariance_method=covariance_method,
         ewma_span=ewma_span,
-        as_of_date=as_of_date
+        as_of_date=as_of_date,
     )
 
     maximum_sharpe_weights = maximum_sharpe_portfolio(
@@ -1186,7 +1222,8 @@ def compare_basic_portfolios(
         target_net_exposure=target_net_exposure,
         covariance_method=covariance_method,
         ewma_span=ewma_span,
-        as_of_date=as_of_date
+        as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     mean_variance_weights = mean_variance_portfolio(
@@ -1200,7 +1237,8 @@ def compare_basic_portfolios(
         target_net_exposure=target_net_exposure,
         covariance_method=covariance_method,
         ewma_span=ewma_span,
-        as_of_date=as_of_date
+        as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     risk_parity_weights = risk_parity_portfolio(
@@ -1210,7 +1248,7 @@ def compare_basic_portfolios(
         tolerance=risk_parity_tolerance,
         covariance_method=covariance_method,
         ewma_span=ewma_span,
-        as_of_date=as_of_date
+        as_of_date=as_of_date,
     )
 
     hierarchical_risk_parity_weights = hierarchical_risk_parity_portfolio(
@@ -1222,7 +1260,8 @@ def compare_basic_portfolios(
         use_expected_return_signal=hrp_use_expected_return_signal,
         score_column=score_column,
         return_risk_metric=hrp_return_risk_metric,
-        as_of_date=as_of_date
+        as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     return {
@@ -1232,7 +1271,7 @@ def compare_basic_portfolios(
         "risk_adjusted_score_weighted": build_portfolio_summary(
             risk_adjusted_weights,
             risk_free_rate,
-            as_of_date
+            as_of_date,
         ),
         "minimum_variance": build_portfolio_summary(minimum_variance_weights, risk_free_rate, as_of_date),
         "maximum_sharpe": build_portfolio_summary(maximum_sharpe_weights, risk_free_rate, as_of_date),
@@ -1241,6 +1280,6 @@ def compare_basic_portfolios(
         "hierarchical_risk_parity": build_portfolio_summary(
             hierarchical_risk_parity_weights,
             risk_free_rate,
-            as_of_date
+            as_of_date,
         ),
     }

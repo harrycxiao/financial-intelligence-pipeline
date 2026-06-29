@@ -3,6 +3,7 @@
 from datetime import date
 from typing import Optional
 
+import numpy as np
 import pandas as pd
 
 from src.analytics.derived_metrics import (
@@ -45,31 +46,35 @@ def robust_score(
     This keeps magnitude information while reducing outlier impact.
     """
 
-    clean_series = pd.Series(
+    numeric_series = pd.Series(
         pd.to_numeric(series, errors="coerce"),
         index=series.index,
+        dtype=float,
     )
 
-    if clean_series.dropna().empty:
-        return pd.Series([None] * len(series), index=series.index)
+    numeric_series = numeric_series.replace([np.inf, -np.inf], np.nan)
+    clean_series = numeric_series.dropna()
+
+    if clean_series.empty:
+        return pd.Series([None] * len(series), index=series.index, dtype=float)
+
+    if clean_series.nunique() == 1:
+        return pd.Series([50.0] * len(series), index=series.index, dtype=float)
 
     lower = clean_series.quantile(lower_quantile)
     upper = clean_series.quantile(upper_quantile)
 
-    clipped = clean_series.clip(lower=lower, upper=upper)
+    if pd.isna(lower) or pd.isna(upper) or lower == upper:
+        return pd.Series([50.0] * len(series), index=series.index, dtype=float)
 
-    min_value = clipped.min()
-    max_value = clipped.max()
+    clipped = numeric_series.clip(lower=lower, upper=upper)
 
-    if pd.isna(min_value) or pd.isna(max_value) or min_value == max_value:
-        return pd.Series([50.0] * len(series), index=series.index)
-
-    scores = ((clipped - min_value) / (max_value - min_value)) * 100
+    scores = ((clipped - lower) / (upper - lower)) * 100
 
     if not higher_is_better:
         scores = 100 - scores
 
-    return scores
+    return scores.clip(lower=0, upper=100)
 
 
 def weighted_average_available_columns(df: pd.DataFrame, columns: dict) -> pd.Series:
@@ -103,7 +108,10 @@ def weighted_average_available_columns(df: pd.DataFrame, columns: dict) -> pd.Se
     weighted_scores = score_df.multiply(weight_series, axis=1)
     available_weights = score_df.notna().multiply(weight_series, axis=1)
 
-    return weighted_scores.sum(axis=1) / available_weights.sum(axis=1)
+    weight_sum = available_weights.sum(axis=1)
+    weight_sum = weight_sum.replace(0, np.nan)
+
+    return weighted_scores.sum(axis=1) / weight_sum
 
 
 def calculate_rsi_score(rsi: Optional[float]) -> Optional[float]:
@@ -134,6 +142,7 @@ def calculate_rsi_score(rsi: Optional[float]) -> Optional[float]:
 def build_factor_dataset(
     tickers: list,
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> pd.DataFrame:
     """Build one raw factor row per ticker."""
 
@@ -145,6 +154,7 @@ def build_factor_dataset(
         fundamental_summary = calculate_fundamental_summary(
             ticker,
             as_of_date=as_of_date,
+            period_mode=period_mode,
         )
         latest_fundamentals = fundamental_summary.get("latest_metrics") or {}
 
@@ -267,12 +277,14 @@ def build_factor_dataset(
 def calculate_factor_scores(
     tickers: list,
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> pd.DataFrame:
     """Calculate cross-sectional factor scores for a ticker universe."""
 
     df = build_factor_dataset(
         tickers,
         as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     if df.empty:
@@ -392,6 +404,7 @@ def calculate_factor_scores(
 def rank_companies(
     tickers: list,
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> list:
 
     """Return ranked factor scores as dictionaries."""
@@ -399,6 +412,7 @@ def rank_companies(
     scores = calculate_factor_scores(
         tickers,
         as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     if scores.empty:
@@ -411,6 +425,7 @@ def get_company_factor_profile(
     ticker: str,
     peer_tickers: list,
     as_of_date: Optional[date] = None,
+    period_mode: str = "quarterly",
 ) -> dict:
     """Return one company's factor profile relative to a peer universe."""
 
@@ -420,6 +435,7 @@ def get_company_factor_profile(
     scores = calculate_factor_scores(
         tickers,
         as_of_date=as_of_date,
+        period_mode=period_mode,
     )
 
     if scores.empty:

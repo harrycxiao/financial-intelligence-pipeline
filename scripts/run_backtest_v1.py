@@ -88,6 +88,7 @@ def run_static_backtest(universe_tickers: list[str]) -> dict:
         score_column="overall_score",
         two_stage=True,
         minimum_return_rows=252,
+        period_mode="annual",
     )
 
     result = compare_portfolio_methods_backtest(
@@ -96,6 +97,7 @@ def run_static_backtest(universe_tickers: list[str]) -> dict:
         start_date=START_DATE,
         end_date=END_DATE,
         as_of_date=SIGNAL_AS_OF_DATE,
+        period_mode="annual",
         initial_value=1.0,
         risk_free_rate=RISK_FREE_RATE,
         covariance_method="sample",
