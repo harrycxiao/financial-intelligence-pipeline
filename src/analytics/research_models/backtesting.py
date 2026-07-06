@@ -20,6 +20,11 @@ from src.analytics.research_models.portfolio_models import (
     get_returns_matrix,
 )
 
+from src.analytics.predictive_models.alpha_models import (
+    calculate_alpha_expected_returns,
+    FINAL_ALPHA_COLUMN,
+)
+
 
 # ---------------------------------------------------------------------
 # Return / equity curve helpers
@@ -230,20 +235,15 @@ def select_portfolio_candidates(
     as_of_date: date,
     top_screen_n: int = 100,
     final_portfolio_n: int = 10,
-    score_column: str = "overall_score",
-    two_stage: bool = True,
+    first_stage_mode: str = "factor",
+    second_stage_mode: str = "alpha",
+    factor_score_column: str = "overall_score",
+    alpha_score_column: str = FINAL_ALPHA_COLUMN,
     minimum_return_rows: int = 252,
-    period_mode: str = "quarterly",
+    factor_scores_df: Optional[pd.DataFrame] = None,
+    alpha_scores_df: Optional[pd.DataFrame] = None,
 ) -> list:
-    """
-    Select portfolio candidates from a larger ticker universe.
-
-    Step 1: optional return-history eligibility filter.
-    Step 2: rank all eligible tickers by factor score as of the rebalance date.
-    Step 3: take top_screen_n.
-    Step 4: optionally re-score that smaller group cross-sectionally.
-    Step 5: return final_portfolio_n tickers for portfolio optimization.
-    """
+    """Select candidates using precomputed factor/alpha score dataframes."""
 
     eligible_tickers = filter_tickers_with_return_history(
         tickers=universe_tickers,
@@ -254,52 +254,108 @@ def select_portfolio_candidates(
     if not eligible_tickers:
         return []
 
-    first_scores = calculate_factor_scores(
-        eligible_tickers,
-        as_of_date=as_of_date,
-        period_mode=period_mode,
-    )
+    eligible_set = set(eligible_tickers)
 
-    if first_scores.empty or score_column not in first_scores.columns:
-        return []
+    def prepare_scores(
+        scores_df: Optional[pd.DataFrame],
+        score_column: str,
+        allowed_tickers: set,
+    ) -> pd.DataFrame:
+        if scores_df is None or scores_df.empty:
+            return pd.DataFrame()
 
-    first_scores = first_scores.dropna(subset=[score_column])
+        if "ticker" not in scores_df.columns or score_column not in scores_df.columns:
+            return pd.DataFrame()
+
+        df = scores_df.copy()
+        df["ticker"] = df["ticker"].astype(str).str.upper().str.strip()
+        df = df[df["ticker"].isin(allowed_tickers)].copy()
+        df = df[df[score_column].notna()].copy()
+
+        if df.empty:
+            return df
+
+        df = df.set_index(score_column)
+        df = df.sort_index(ascending=False)
+        df = df.reset_index()
+
+        return df
+
+    first_stage_mode = first_stage_mode.lower().strip()
+    second_stage_mode = second_stage_mode.lower().strip()
+
+    if first_stage_mode == "factor":
+        if factor_scores_df is None:
+            factor_scores_df = calculate_factor_scores(
+                eligible_tickers,
+                as_of_date=as_of_date,
+                period_mode="quarterly",
+            )
+
+        first_scores = prepare_scores(
+            scores_df=factor_scores_df,
+            score_column=factor_score_column,
+            allowed_tickers=eligible_set,
+        )
+
+    elif first_stage_mode == "alpha":
+        first_scores = prepare_scores(
+            scores_df=alpha_scores_df,
+            score_column=alpha_score_column,
+            allowed_tickers=eligible_set,
+        )
+
+    else:
+        raise ValueError("first_stage_mode must be 'factor' or 'alpha'.")
 
     if first_scores.empty:
         return []
 
-    first_scores = first_scores.set_index(score_column)
-    first_scores = first_scores.sort_index(ascending=False)
-    first_scores = first_scores.reset_index()
-
-    screened_tickers = first_scores["ticker"].head(top_screen_n).tolist()
-
-    if not two_stage:
-        return screened_tickers[:final_portfolio_n]
-
-    second_scores = calculate_factor_scores(
-        screened_tickers,
-        as_of_date=as_of_date,
-        period_mode=period_mode,
+    screened_tickers = (
+        first_scores["ticker"]
+        .head(top_screen_n)
+        .astype(str)
+        .str.upper()
+        .str.strip()
+        .tolist()
     )
 
-    if second_scores.empty or score_column not in second_scores.columns:
-        return screened_tickers[:final_portfolio_n]
+    if not screened_tickers:
+        return []
 
-    second_scores = second_scores.dropna(subset=[score_column])
+    screened_set = set(screened_tickers)
+
+    if second_stage_mode == "factor":
+        second_raw_scores = calculate_factor_scores(
+            screened_tickers,
+            as_of_date=as_of_date,
+            period_mode="quarterly",
+            )
+
+        second_scores = prepare_scores(
+            scores_df=second_raw_scores,
+            score_column=factor_score_column,
+            allowed_tickers=screened_set,
+        )
+
+    elif second_stage_mode == "alpha":
+        second_scores = prepare_scores(
+            scores_df=alpha_scores_df,
+            score_column=alpha_score_column,
+            allowed_tickers=screened_set,
+        )
+
+    else:
+        raise ValueError("second_stage_mode must be 'factor' or 'alpha'.")
 
     if second_scores.empty:
         return screened_tickers[:final_portfolio_n]
-
-    second_scores = second_scores.set_index(score_column)
-    second_scores = second_scores.sort_index(ascending=False)
-    second_scores = second_scores.reset_index()
 
     return second_scores["ticker"].head(final_portfolio_n).tolist()
 
 
 def generate_rebalance_periods(
-    start_date: date = date(2023, 1, 1),
+    start_date: date = date(2024, 4, 1),
     end_date: date = date(2026, 3, 31),
     months: int = 3,
 ) -> list[dict]:
@@ -343,6 +399,21 @@ def generate_rebalance_periods(
 
     return periods
 
+def generate_training_as_of_dates(
+    current_as_of_date: date,
+    lookback_periods: int = 12,
+    months: int = 3,
+) -> list[date]:
+    """Generate prior rebalance as-of dates for predictive-model training."""
+
+    dates = pd.date_range(
+        end=pd.to_datetime(current_as_of_date) - pd.DateOffset(months=months),
+        periods=lookback_periods,
+        freq=f"{months}MS",
+    )
+
+    return [timestamp.date() for timestamp in dates]
+
 
 # ---------------------------------------------------------------------
 # Portfolio method construction
@@ -355,7 +426,7 @@ def build_portfolio_weights(
     as_of_date: Optional[date] = None,
     period_mode: str = "quarterly",
     top_n: int = 5,
-    score_column: str = "overall_score",
+    score_column: str = FINAL_ALPHA_COLUMN,
     risk_column: str = "annualized_volatility",
     covariance_method: str = "sample",
     ewma_span: int = 60,
@@ -372,6 +443,7 @@ def build_portfolio_weights(
     hrp_linkage_method: str = "single",
     hrp_use_expected_return_signal: bool = True,
     hrp_return_risk_metric: str = "volatility",
+    scores_df: Optional[pd.DataFrame] = None,
 ) -> dict:
     """Build portfolio weights for one named portfolio construction method."""
 
@@ -387,6 +459,7 @@ def build_portfolio_weights(
             score_column=score_column,
             as_of_date=as_of_date,
             period_mode=period_mode,
+            scores_df=scores_df,
         )
 
     if method == "score_weighted":
@@ -396,6 +469,7 @@ def build_portfolio_weights(
             top_n=top_n,
             as_of_date=as_of_date,
             period_mode=period_mode,
+            scores_df=scores_df,
         )
 
     if method == "risk_adjusted_score_weighted":
@@ -406,6 +480,7 @@ def build_portfolio_weights(
             top_n=top_n,
             as_of_date=as_of_date,
             period_mode=period_mode,
+            scores_df=scores_df,
         )
 
     if method == "minimum_variance":
@@ -437,6 +512,7 @@ def build_portfolio_weights(
             ewma_span=ewma_span,
             as_of_date=as_of_date,
             period_mode=period_mode,
+            scores_df=scores_df,
         )
 
     if method == "mean_variance":
@@ -453,6 +529,7 @@ def build_portfolio_weights(
             ewma_span=ewma_span,
             as_of_date=as_of_date,
             period_mode=period_mode,
+            scores_df=scores_df,
         )
 
     if method == "risk_parity":
@@ -478,6 +555,7 @@ def build_portfolio_weights(
             return_risk_metric=hrp_return_risk_metric,
             as_of_date=as_of_date,
             period_mode=period_mode,
+            scores_df=scores_df,
         )
 
     raise ValueError(f"Unknown portfolio method: {method_name}")
@@ -693,7 +771,7 @@ def compare_portfolio_methods_backtest(
 def backtest_rebalanced_portfolio_method(
     universe_tickers: list,
     method_name: str,
-    start_date: date = date(2023, 1, 1),
+    start_date: date = date(2024, 4, 1),
     end_date: date = date(2026, 3, 31),
     rebalance_months: int = 3,
     initial_value: float = 1.0,
@@ -721,6 +799,7 @@ def backtest_rebalanced_portfolio_method(
     hrp_linkage_method: str = "single",
     hrp_use_expected_return_signal: bool = True,
     hrp_return_risk_metric: str = "volatility",
+    period_mode: str = "quarterly",
 ) -> dict:
     """
     Run a rolling point-in-time backtest for one method.
@@ -761,6 +840,7 @@ def backtest_rebalanced_portfolio_method(
         hrp_linkage_method=hrp_linkage_method,
         hrp_use_expected_return_signal=hrp_use_expected_return_signal,
         hrp_return_risk_metric=hrp_return_risk_metric,
+        period_mode=period_mode,
     )
 
     return comparison["results"].get(
@@ -779,7 +859,7 @@ def backtest_rebalanced_portfolio_method(
 def compare_rebalanced_portfolio_methods_backtest(
     universe_tickers: list,
     methods: Optional[list] = None,
-    start_date: date = date(2023, 1, 1),
+    start_date: date = date(2024, 4, 1),
     end_date: date = date(2026, 3, 31),
     rebalance_months: int = 3,
     initial_value: float = 1.0,
@@ -790,7 +870,7 @@ def compare_rebalanced_portfolio_methods_backtest(
     two_stage_selection: bool = True,
     minimum_return_rows: int = 252,
     top_n: int = 5,
-    score_column: str = "overall_score",
+    score_column: str = FINAL_ALPHA_COLUMN,
     risk_column: str = "annualized_volatility",
     covariance_method: str = "sample",
     ewma_span: int = 60,
@@ -807,6 +887,7 @@ def compare_rebalanced_portfolio_methods_backtest(
     hrp_linkage_method: str = "single",
     hrp_use_expected_return_signal: bool = True,
     hrp_return_risk_metric: str = "volatility",
+    period_mode: str = "quarterly",
 ) -> dict:
     """
     Run rolling point-in-time backtests for multiple portfolio methods.
@@ -841,13 +922,37 @@ def compare_rebalanced_portfolio_methods_backtest(
         period_start = period["start_date"]
         period_end = period["end_date"]
 
+        training_as_of_dates = generate_training_as_of_dates(
+            current_as_of_date=as_of,
+            lookback_periods=12,
+            months=rebalance_months,
+        )
+
+        combined_scores_df = calculate_alpha_expected_returns(
+            tickers=universe_tickers,
+            training_as_of_dates=training_as_of_dates,
+            current_as_of_date=as_of,
+            period_mode=period_mode,
+            benchmark_ticker="SPY",
+            use_cache=True,
+            min_train_periods=8,
+        )
+
+        combined_scores_df["ticker"] = (
+            combined_scores_df["ticker"].astype(str).str.upper().str.strip()
+        )
+
         selected_tickers = select_portfolio_candidates(
             universe_tickers=universe_tickers,
             as_of_date=as_of,
             top_screen_n=top_screen_n,
             final_portfolio_n=final_portfolio_n,
-            score_column=score_column,
-            two_stage=two_stage_selection,
+            first_stage_mode="factor",
+            second_stage_mode="alpha",
+            factor_scores_df=combined_scores_df,
+            alpha_scores_df=combined_scores_df,
+            factor_score_column="overall_score",
+            alpha_score_column=FINAL_ALPHA_COLUMN,
             minimum_return_rows=minimum_return_rows,
         )
 
@@ -876,7 +981,6 @@ def compare_rebalanced_portfolio_methods_backtest(
                     tickers=selected_tickers,
                     as_of_date=as_of,
                     top_n=min(top_n, len(selected_tickers)),
-                    score_column=score_column,
                     risk_column=risk_column,
                     covariance_method=covariance_method,
                     ewma_span=ewma_span,
@@ -893,6 +997,8 @@ def compare_rebalanced_portfolio_methods_backtest(
                     hrp_linkage_method=hrp_linkage_method,
                     hrp_use_expected_return_signal=hrp_use_expected_return_signal,
                     hrp_return_risk_metric=hrp_return_risk_metric,
+                    score_column=score_column,
+                    scores_df=combined_scores_df,
                 )
 
                 if not weights:

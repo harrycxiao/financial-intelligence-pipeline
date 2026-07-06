@@ -11,6 +11,8 @@ from scipy.spatial.distance import squareform
 from src.analytics.derived_metrics.market_analysis import calculate_returns_dataframe
 from src.analytics.research_models.factor_models import calculate_factor_scores
 
+FINAL_ALPHA_COLUMN = "alpha_expected_excess_return"
+
 
 # ---------------------------------------------------------------------
 # Helper functions
@@ -402,30 +404,42 @@ def finalize_optimized_weights(
 
 def get_expected_return_signal(
     tickers: list,
-    score_column: str = "overall_score",
+    score_column: str = FINAL_ALPHA_COLUMN,
     as_of_date: Optional[date] = None,
     period_mode: str = "quarterly",
+    scores_df: Optional[pd.DataFrame] = None,
 ) -> pd.Series:
-    """
-    Return the current expected-return signal.
+    clean_tickers = [str(t).upper().strip() for t in tickers]
 
-    Phase 1: this uses factor scores as an attractiveness signal.
-    Future: replace this function with true expected return predictions.
-    """
-
-    scores = calculate_factor_scores(
-        tickers,
-        as_of_date=as_of_date,
-        period_mode=period_mode,
-    )
+    if scores_df is not None:
+        scores = scores_df.copy()
+        scores["ticker"] = scores["ticker"].astype(str).str.upper().str.strip()
+        scores = scores[scores["ticker"].isin(clean_tickers)].copy()
+    else:
+        scores = calculate_factor_scores(
+            clean_tickers,
+            as_of_date=as_of_date,
+            period_mode=period_mode,
+        )
 
     if scores.empty or score_column not in scores.columns:
         return pd.Series(dtype=float)
 
+    scores = scores[scores[score_column].notna()].copy()
+
+    if scores_df is None:
+        return pd.Series(
+            scores["overall_score"].values,
+            index=scores["ticker"],
+            dtype=float,
+        )
+
     return pd.Series(
         scores[score_column].values,
         index=scores["ticker"],
+        dtype=float,
     )
+
 
 
 def calculate_inverse_variance_weights(covariance_matrix: pd.DataFrame) -> pd.Series:
@@ -669,77 +683,80 @@ def equal_weight_portfolio(tickers: list) -> dict:
 def top_n_equal_weight_portfolio(
     tickers: list,
     n: int = 5,
-    score_column: str = "overall_score",
+    score_column: str = FINAL_ALPHA_COLUMN,
     as_of_date: Optional[date] = None,
     period_mode: str = "quarterly",
+    scores_df: Optional[pd.DataFrame] = None,
 ) -> dict:
-    """Select top N stocks by factor score and equal-weight them."""
-
-    scores = calculate_factor_scores(
-        tickers,
+    signal = get_expected_return_signal(
+        tickers=tickers,
+        score_column=score_column,
         as_of_date=as_of_date,
         period_mode=period_mode,
+        scores_df=scores_df,
     )
 
-    if scores.empty or score_column not in scores.columns:
+    if signal.empty:
         return {}
 
-    top = scores.sort_values(score_column, ascending=False).head(n)
-    selected_tickers = top["ticker"].tolist()
-
+    selected_tickers = signal.sort_values(ascending=False).head(n).index.tolist()
     return equal_weight_portfolio(selected_tickers)
 
 
 def score_weighted_portfolio(
     tickers: list,
-    score_column: str = "overall_score",
+    score_column: str = FINAL_ALPHA_COLUMN,
     top_n: Optional[int] = None,
     as_of_date: Optional[date] = None,
     period_mode: str = "quarterly",
+    scores_df: Optional[pd.DataFrame] = None,
 ) -> dict:
-    """Allocate weights proportional to factor scores."""
-
-    scores = calculate_factor_scores(
-        tickers,
+    signal = get_expected_return_signal(
+        tickers=tickers,
+        score_column=score_column,
         as_of_date=as_of_date,
         period_mode=period_mode,
+        scores_df=scores_df,
     )
 
-    if scores.empty or score_column not in scores.columns:
+    if signal.empty:
         return {}
 
-    scores = scores.sort_values(score_column, ascending=False)
+    signal = signal.sort_values(ascending=False)
 
     if top_n is not None:
-        scores = scores.head(top_n)
+        signal = signal.head(top_n)
 
-    raw_weights = pd.Series(
-        scores[score_column].values,
-        index=scores["ticker"],
-    )
-
-    return normalize_weights(raw_weights)
+    return normalize_weights(signal)
 
 
 def risk_adjusted_score_portfolio(
     tickers: list,
-    score_column: str = "overall_score",
+    score_column: str = FINAL_ALPHA_COLUMN,
     risk_column: str = "annualized_volatility",
     top_n: Optional[int] = None,
     as_of_date: Optional[date] = None,
     period_mode: str = "quarterly",
+    scores_df: Optional[pd.DataFrame] = None,
 ) -> dict:
-    """Allocate using score divided by risk."""
+    if scores_df is None:
+        scores = calculate_factor_scores(
+            tickers,
+            as_of_date=as_of_date,
+            period_mode=period_mode,
+        )
+    else:
+        scores = scores_df.copy()
 
-    scores = calculate_factor_scores(
-        tickers,
-        as_of_date=as_of_date,
-        period_mode=period_mode,
-    )
+    scores["ticker"] = scores["ticker"].astype(str).str.upper().str.strip()
+    clean_tickers = [str(t).upper().strip() for t in tickers]
+    scores = scores[scores["ticker"].isin(clean_tickers)].copy()
 
     if scores.empty or score_column not in scores.columns or risk_column not in scores.columns:
         return {}
 
+    scores = scores[scores[score_column].notna()].copy()
+    scores = scores[scores[risk_column].notna()].copy()
     scores = scores.sort_values(score_column, ascending=False)
 
     if top_n is not None:
@@ -751,6 +768,7 @@ def risk_adjusted_score_portfolio(
     raw_weights = pd.Series(
         raw_values.values,
         index=scores["ticker"],
+        dtype=float,
     )
 
     return normalize_weights(raw_weights)
@@ -824,6 +842,7 @@ def maximum_sharpe_portfolio(
     ewma_span: int = 60,
     as_of_date: Optional[date] = None,
     period_mode: str = "quarterly",
+    scores_df: Optional[pd.DataFrame] = None
 ) -> dict:
     """Create a maximum Sharpe-style portfolio."""
 
@@ -844,6 +863,7 @@ def maximum_sharpe_portfolio(
         score_column=score_column,
         as_of_date=as_of_date,
         period_mode=period_mode,
+        scores_df=scores_df,
     )
 
     common_tickers = [
@@ -892,6 +912,7 @@ def mean_variance_portfolio(
     ewma_span: int = 60,
     as_of_date: Optional[date] = None,
     period_mode: str = "quarterly",
+    scores_df: Optional[pd.DataFrame] = None
 ) -> dict:
     """Create a mean-variance-style portfolio."""
 
@@ -914,6 +935,7 @@ def mean_variance_portfolio(
         score_column=score_column,
         as_of_date=as_of_date,
         period_mode=period_mode,
+        scores_df=scores_df,
     )
 
     common_tickers = [
@@ -933,9 +955,7 @@ def mean_variance_portfolio(
     except np.linalg.LinAlgError:
         return {}
 
-    centered_signal = expected_return_signal - expected_return_signal.mean()
-
-    raw_weights = inverse_covariance @ centered_signal.values
+    raw_weights = inverse_covariance @ expected_return_signal.values
     weights = pd.Series(raw_weights, index=common_tickers)
 
     target_exposure = 1 / risk_aversion
@@ -1025,6 +1045,7 @@ def hierarchical_risk_parity_portfolio(
     return_risk_metric: str = "volatility",
     as_of_date: Optional[date] = None,
     period_mode: str = "quarterly",
+    scores_df: Optional[pd.DataFrame] = None
 ) -> dict:
     """Create a long-only hierarchical risk parity portfolio."""
 
@@ -1053,6 +1074,7 @@ def hierarchical_risk_parity_portfolio(
             score_column=score_column,
             as_of_date=as_of_date,
             period_mode=period_mode,
+            scores_df=scores_df,
         )
 
     distance_matrix = get_correlation_distance(covariance_matrix)
