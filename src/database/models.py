@@ -50,7 +50,7 @@ class MarketPrice(Base):
     low: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     close: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     adjusted_close: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    volume: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    volume: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     shares_outstanding: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
