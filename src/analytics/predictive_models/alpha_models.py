@@ -1,5 +1,3 @@
-# src/analytics/predictive_models/alpha_models.py
-
 from datetime import date
 from typing import Optional
 
@@ -12,7 +10,6 @@ from src.analytics.predictive_models.statistical_models import (
     train_and_predict_statistical_expected_returns,
 )
 
-
 STATISTICAL_ALPHA_COLUMN = "statistical_expected_excess_return"
 FINAL_ALPHA_COLUMN = "alpha_expected_excess_return"
 
@@ -21,14 +18,6 @@ def add_current_date_to_training_boundaries(
     training_as_of_dates: list[date],
     current_as_of_date: date,
 ) -> list[date]:
-    """
-    Include current_as_of_date as the final boundary date.
-
-    This lets the previous training period get its forward return ending
-    the day before current_as_of_date, while the current date itself is not
-    used as a labeled training row.
-    """
-
     dates = list(training_as_of_dates)
     dates.append(current_as_of_date)
 
@@ -45,10 +34,10 @@ def calculate_alpha_expected_returns(
     min_train_periods: int = 8,
 ) -> pd.DataFrame:
     """
-    First alpha-model version.
+    Statistical alpha model.
 
-    Uses only statistical_models.py output and renames it into the master
-    alpha expected-return column used later for ranking/portfolio selection.
+    Uses the stacked statistical expected-return model with the eight
+    engineered factor scores and exposes the final standardized alpha column.
     """
 
     training_dates_with_boundary = add_current_date_to_training_boundaries(
@@ -80,7 +69,9 @@ def calculate_alpha_expected_returns(
         )
 
     current_features = inputs["statistical_current_features"].copy()
-    current_features["ticker"] = current_features["ticker"].astype(str).str.upper().str.strip()
+    current_features["ticker"] = (
+        current_features["ticker"].astype(str).str.upper().str.strip()
+    )
 
     predictions = predictions.copy()
     predictions["ticker"] = predictions["ticker"].astype(str).str.upper().str.strip()
@@ -102,8 +93,6 @@ def select_top_alpha_tickers(
     top_n: int = 100,
     alpha_column: str = FINAL_ALPHA_COLUMN,
 ) -> list[str]:
-    """Rank tickers by alpha expected return and return the top names."""
-
     if alpha_df.empty:
         return []
 

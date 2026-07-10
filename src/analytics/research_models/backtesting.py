@@ -52,6 +52,51 @@ def filter_returns_by_date(
 
     return filtered
 
+def build_cash_return_series(
+    reference_tickers: list,
+    start_date: date,
+    end_date: date,
+) -> pd.Series:
+    """
+    Build a zero-return series over the actual trading dates in a holding period.
+
+    Used when the strategy deliberately holds cash because the portfolio
+    construction method produces no investable long-only weights.
+    """
+
+    for ticker in reference_tickers:
+        returns = get_returns_matrix([ticker])
+
+        if returns.empty:
+            continue
+
+        returns = filter_returns_by_date(
+            returns=returns,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        if not returns.empty:
+            return pd.Series(
+                0.0,
+                index=returns.index,
+                name="portfolio_return",
+                dtype=float,
+            )
+
+    # Defensive fallback if none of the selected tickers has usable dates.
+    fallback_dates = pd.bdate_range(
+        start=pd.to_datetime(start_date),
+        end=pd.to_datetime(end_date),
+    )
+
+    return pd.Series(
+        0.0,
+        index=fallback_dates,
+        name="portfolio_return",
+        dtype=float,
+    )
+
 
 def align_weights_to_returns(weights: dict, returns: pd.DataFrame) -> pd.Series:
     """Align portfolio weights to available return columns."""
@@ -236,7 +281,7 @@ def select_portfolio_candidates(
     top_screen_n: int = 100,
     final_portfolio_n: int = 10,
     first_stage_mode: str = "factor",
-    second_stage_mode: str = "alpha",
+    second_stage_mode: str = "factor",
     factor_score_column: str = "overall_score",
     alpha_score_column: str = FINAL_ALPHA_COLUMN,
     minimum_return_rows: int = 252,
@@ -330,7 +375,7 @@ def select_portfolio_candidates(
             screened_tickers,
             as_of_date=as_of_date,
             period_mode="quarterly",
-            )
+        )
 
         second_scores = prepare_scores(
             scores_df=second_raw_scores,
@@ -948,7 +993,7 @@ def compare_rebalanced_portfolio_methods_backtest(
             top_screen_n=top_screen_n,
             final_portfolio_n=final_portfolio_n,
             first_stage_mode="factor",
-            second_stage_mode="alpha",
+            second_stage_mode="factor",
             factor_scores_df=combined_scores_df,
             alpha_scores_df=combined_scores_df,
             factor_score_column="overall_score",
@@ -1002,6 +1047,14 @@ def compare_rebalanced_portfolio_methods_backtest(
                 )
 
                 if not weights:
+                    cash_returns = build_cash_return_series(
+                            reference_tickers=selected_tickers,
+                            start_date=period_start,
+                            end_date=period_end,
+                        )
+
+                    state["period_returns"].append(cash_returns)
+
                     state["rebalance_history"].append(
                         {
                             "as_of_date": as_of,
@@ -1009,9 +1062,13 @@ def compare_rebalanced_portfolio_methods_backtest(
                             "end_date": period_end,
                             "selected_tickers": selected_tickers,
                             "weights": {},
-                            "period_return": None,
+                            "period_return": 0.0,
                             "ending_value": current_value,
-                            "error": "Portfolio method returned empty weights.",
+                            "error": None,
+                            "position_status": "cash",
+                            "cash_reason": (
+                                "Portfolio method produced no positive long-only weights."
+                            ),
                         }
                     )
                     continue
