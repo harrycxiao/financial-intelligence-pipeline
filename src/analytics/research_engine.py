@@ -246,7 +246,7 @@ def build_research_portfolio_weights(
     if method == "top_n_equal_weight":
         return top_n_equal_weight_portfolio(
             tickers=tickers,
-            n=top_n,
+            top_n=top_n,
             score_column=FINAL_ALPHA_COLUMN,
             as_of_date=as_of_date,
             period_mode=config.period_mode,

@@ -682,7 +682,7 @@ def equal_weight_portfolio(tickers: list) -> dict:
 
 def top_n_equal_weight_portfolio(
     tickers: list,
-    n: int = 5,
+    top_n: int = 5,
     score_column: str = FINAL_ALPHA_COLUMN,
     as_of_date: Optional[date] = None,
     period_mode: str = "quarterly",
@@ -699,7 +699,7 @@ def top_n_equal_weight_portfolio(
     if signal.empty:
         return {}
 
-    selected_tickers = signal.sort_values(ascending=False).head(n).index.tolist()
+    selected_tickers = signal.sort_values(ascending=False).head(top_n).index.tolist()
     return equal_weight_portfolio(selected_tickers)
 
 
@@ -724,8 +724,8 @@ def score_weighted_portfolio(
 
     signal = signal.sort_values(ascending=False)
 
-    if top_n is not None:
-        signal = signal.head(top_n)
+    #if top_n is not None:
+    #    signal = signal.head(top_n)
 
     return normalize_weights(signal)
 
@@ -759,8 +759,8 @@ def risk_adjusted_score_portfolio(
     scores = scores[scores[risk_column].notna()].copy()
     scores = scores.sort_values(score_column, ascending=False)
 
-    if top_n is not None:
-        scores = scores.head(top_n)
+    #if top_n is not None:
+    #    scores = scores.head(top_n)
 
     risk = scores[risk_column].replace(0, np.nan)
     raw_values = scores[score_column] / risk
@@ -1196,7 +1196,7 @@ def compare_basic_portfolios(
 
     top_n_equal_weights = top_n_equal_weight_portfolio(
         tickers=tickers,
-        n=top_n,
+        top_n=top_n,
         score_column=score_column,
         as_of_date=as_of_date,
         period_mode=period_mode,

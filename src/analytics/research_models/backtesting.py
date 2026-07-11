@@ -500,7 +500,7 @@ def build_portfolio_weights(
     if method == "top_n_equal_weight":
         return top_n_equal_weight_portfolio(
             tickers=tickers,
-            n=top_n,
+            top_n=top_n,
             score_column=score_column,
             as_of_date=as_of_date,
             period_mode=period_mode,
