@@ -4,7 +4,7 @@ from datetime import date
 
 import pandas as pd
 
-from scripts.ingest_sp500 import fetch_sp500_tickers
+from scripts.sp.ingest_sp500 import fetch_sp500_tickers
 
 from src.analytics.research_models.backtesting import (
     compare_portfolio_methods_backtest,

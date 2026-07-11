@@ -110,7 +110,7 @@ def ingest_sp500_universe(
     market_interval: str = "1d",
     years_back: int = 5,
     include_quarterly: bool = True,
-    output_csv_path: str = "sp500_ingestion_results.csv",
+    output_csv_path: str = "results/sp500_ingestion_results.csv",
 ) -> pd.DataFrame:
     """
     Ingest S&P 500 company metadata, market data, and financial metrics.
