@@ -108,3 +108,24 @@ def company_exists(ticker: str) -> bool:
     """Check whether a company exists in the database."""
 
     return get_company_id_by_ticker(ticker) is not None
+
+
+def get_company_by_id(company_id: int) -> Optional[dict]:
+    """Get one company by internal database ID."""
+
+    session = SessionLocal()
+
+    try:
+        company = (
+            session.query(Company)
+            .filter(Company.id == company_id)
+            .first()
+        )
+
+        if company is None:
+            return None
+
+        return company_to_dict(company)
+
+    finally:
+        session.close()

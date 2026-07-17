@@ -10,6 +10,7 @@ from src.database.query.company_queries import (
     get_companies_by_sector,
     get_company_by_ticker,
     get_company_id_by_ticker,
+    get_company_by_id,
 )
 
 from src.database.query.market_data_queries import (

@@ -48,7 +48,7 @@ class ResearchEngineConfig:
 
     max_weight: Optional[float] = 1.0
     risk_aversion: float = 1.0
-    risk_free_signal: float = 0.0
+    risk_free_signal: float = 0.04
 
     hrp_linkage_method: str = "single"
     hrp_use_expected_return_signal: bool = True
@@ -166,6 +166,10 @@ def rank_factor_universe(
         .reset_index(drop=True)
     )
 
+    full_factor_scores["universe_rank"] = (
+        full_factor_scores.index + 1
+    )
+
     screened_tickers = (
         full_factor_scores["ticker"]
         .head(top_screen_n)
@@ -207,6 +211,20 @@ def rank_factor_universe(
         .dropna(subset=["overall_score"])
         .sort_values("overall_score", ascending=False)
         .reset_index(drop=True)
+    )
+
+    screened_factor_scores["screen_rank"] = (
+        screened_factor_scores.index + 1
+    )
+
+    universe_rank_lookup = (
+        full_factor_scores
+        .set_index("ticker")["universe_rank"]
+        .to_dict()
+    )
+
+    screened_factor_scores["universe_rank"] = (
+        screened_factor_scores["ticker"].map(universe_rank_lookup)
     )
 
     selected_tickers = (
