@@ -18,6 +18,17 @@ from pydantic import (
     model_validator,
 )
 
+PortfolioMethod = Literal[
+    "equal_weight",
+    "top_n_equal_weight",
+    "score_weighted",
+    "risk_adjusted_score_weighted",
+    "minimum_variance",
+    "maximum_sharpe",
+    "mean_variance",
+    "risk_parity",
+    "hierarchical_risk_parity",
+]
 
 EvidenceSourceType = Literal[
     "quantitative",
@@ -202,7 +213,7 @@ class QuarterlyPortfolioReport(StrictReportSchema):
 
     as_of_date: date
 
-    portfolio_method: str = Field(
+    portfolio_method: PortfolioMethod = Field(
         min_length=1,
     )
 
