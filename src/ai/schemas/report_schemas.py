@@ -84,6 +84,8 @@ class EvidenceReference(StrictReportSchema):
     important conclusions.
     """
 
+    ticker: Optional[str] = None
+
     source_type: EvidenceSourceType
 
     title: str = Field(
@@ -109,6 +111,11 @@ class HoldingReport(StrictReportSchema):
     """
 
     ticker: str
+
+    company_name: str = Field(
+        min_length=1,
+        description="Official company name.",
+    )
 
     portfolio_weight: float = Field(
         ge=0.0,
@@ -306,6 +313,11 @@ class CompanyResearchReport(StrictReportSchema):
 
     as_of_date: date
     ticker: str
+
+    company_name: str = Field(
+        min_length=1,
+        description="Official company name.",
+    )
 
     company_overview: str = Field(min_length=1)
     investment_thesis: str = Field(min_length=1)
