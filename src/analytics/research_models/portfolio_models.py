@@ -705,68 +705,121 @@ def top_n_equal_weight_portfolio(
 
 def score_weighted_portfolio(
     tickers: list,
-    score_column: str = FINAL_ALPHA_COLUMN,
+    score_column: str = "overall_score",
     top_n: Optional[int] = None,
     as_of_date: Optional[date] = None,
     period_mode: str = "quarterly",
     scores_df: Optional[pd.DataFrame] = None,
 ) -> dict:
-    signal = get_expected_return_signal(
-        tickers=tickers,
-        score_column=score_column,
+
+    scores = calculate_factor_scores(
+        tickers,
         as_of_date=as_of_date,
         period_mode=period_mode,
-        scores_df=scores_df,
     )
 
-    if signal.empty:
+    scores["ticker"] = (
+        scores["ticker"]
+        .astype(str)
+        .str.upper()
+        .str.strip()
+    )
+
+    clean_tickers = [
+        str(t).upper().strip()
+        for t in tickers
+    ]
+
+    scores = scores[
+        scores["ticker"].isin(clean_tickers)
+    ].copy()
+
+    if (
+        scores.empty
+        or score_column not in scores.columns
+    ):
         return {}
 
-    signal = signal.sort_values(ascending=False)
+    scores = scores[
+        scores[score_column].notna()
+    ].copy()
 
-    #if top_n is not None:
-    #    signal = signal.head(top_n)
+    scores = scores.sort_values(
+        score_column,
+        ascending=False,
+    )
 
-    return normalize_weights(signal)
+    # if top_n is not None:
+    #     scores = scores.head(top_n)
+
+    raw_weights = pd.Series(
+        scores[score_column].values,
+        index=scores["ticker"],
+        dtype=float,
+    )
+
+    return normalize_weights(raw_weights)
 
 
 def risk_adjusted_score_portfolio(
     tickers: list,
-    score_column: str = FINAL_ALPHA_COLUMN,
+    score_column: str = "overall_score",
     risk_column: str = "annualized_volatility",
     top_n: Optional[int] = None,
     as_of_date: Optional[date] = None,
     period_mode: str = "quarterly",
     scores_df: Optional[pd.DataFrame] = None,
 ) -> dict:
-    if scores_df is None:
-        scores = calculate_factor_scores(
-            tickers,
-            as_of_date=as_of_date,
-            period_mode=period_mode,
-        )
-    else:
-        scores = scores_df.copy()
 
-    scores["ticker"] = scores["ticker"].astype(str).str.upper().str.strip()
-    clean_tickers = [str(t).upper().strip() for t in tickers]
-    scores = scores[scores["ticker"].isin(clean_tickers)].copy()
+    scores = calculate_factor_scores(
+        tickers,
+        as_of_date=as_of_date,
+        period_mode=period_mode,
+    )
 
-    if scores.empty or score_column not in scores.columns or risk_column not in scores.columns:
+    scores["ticker"] = (
+        scores["ticker"]
+        .astype(str)
+        .str.upper()
+        .str.strip()
+    )
+
+    clean_tickers = [
+        str(t).upper().strip()
+        for t in tickers
+    ]
+
+    scores = scores[
+        scores["ticker"].isin(clean_tickers)
+    ].copy()
+
+    if (
+        scores.empty
+        or score_column not in scores.columns
+        or risk_column not in scores.columns
+    ):
         return {}
 
-    scores = scores[scores[score_column].notna()].copy()
-    scores = scores[scores[risk_column].notna()].copy()
-    scores = scores.sort_values(score_column, ascending=False)
+    scores = scores[
+        scores[score_column].notna()
+    ].copy()
 
-    #if top_n is not None:
-    #    scores = scores.head(top_n)
+    scores = scores[
+        scores[risk_column].notna()
+    ].copy()
+
+    scores = scores.sort_values(
+        score_column,
+        ascending=False,
+    )
+
+    # if top_n is not None:
+    #     scores = scores.head(top_n)
 
     risk = scores[risk_column].replace(0, np.nan)
-    raw_values = scores[score_column] / risk
 
     raw_weights = pd.Series(
-        raw_values.values,
+        scores[score_column] / risk,
         index=scores["ticker"],
         dtype=float,
     )

@@ -6,9 +6,6 @@ from typing import Optional
 
 import pandas as pd
 
-from src.analytics.research_models.factor_models import calculate_factor_scores
-from src.analytics.research_models.portfolio_models import get_returns_matrix
-
 
 # ---------------------------------------------------------------------
 # Shared constants
@@ -185,6 +182,10 @@ def build_factor_snapshot(
     - future alpha_models ranking functions
     """
 
+    from src.analytics.research_models.factor_models import (
+        calculate_factor_scores,
+    )
+
     snapshot_path = get_snapshot_path(as_of_date)
 
     if use_cache and snapshot_path.exists():
@@ -245,6 +246,10 @@ def calculate_forward_return_for_tickers(
 
     for ticker in tickers:
         clean_ticker = str(ticker).upper().strip()
+
+        from src.analytics.research_models.portfolio_models import (
+            get_returns_matrix,
+        )
 
         returns = get_returns_matrix([clean_ticker])
 

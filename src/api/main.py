@@ -1,5 +1,9 @@
 # src/api/main.py
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI
 
 from src.api.ai_routes import router as ai_router
@@ -12,6 +16,7 @@ app = FastAPI(
     title="Financial Intelligence Pipeline API",
     version="0.1.0",
 )
+
 
 app.include_router(store_router)
 app.include_router(query_router)
