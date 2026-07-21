@@ -9,8 +9,6 @@ before that data is supplied to an LLM agent.
 
 from datetime import date, datetime
 from typing import Any, Dict, List, Literal, Optional
-from pathlib import Path
-import pandas as pd
 
 from pydantic import (
     BaseModel,
@@ -18,6 +16,10 @@ from pydantic import (
     Field,
     field_validator,
     model_validator,
+)
+
+from src.ai.services.store_universe_tickers import (
+    fetch_us_universe_tickers,
 )
 
 
@@ -38,39 +40,6 @@ PeriodMode = Literal[
     "annual",
     "raw",
 ]
-
-
-def fetch_us_universe_tickers(
-    limit: Optional[int] = None,
-    eligible_csv_path: str = "results/us_universe_eligible_tickers.csv",
-) -> list[str]:
-    path = Path(eligible_csv_path)
-
-    if not path.exists():
-        raise FileNotFoundError(
-            f"Could not find eligible ticker file: {eligible_csv_path}. "
-            "Run scripts/filter_us_universe.py first."
-        )
-
-    df = pd.read_csv(path)
-
-    if "ticker" not in df.columns:
-        raise ValueError(f"{eligible_csv_path} must contain a 'ticker' column.")
-
-    tickers = (
-        df["ticker"]
-        .dropna()
-        .astype(str)
-        .str.upper()
-        .str.strip()
-        .drop_duplicates()
-        .tolist()
-    )
-
-    if limit is not None:
-        return tickers[:limit]
-
-    return tickers
 
 
 def normalize_ticker(value: str, field_name: str = "ticker") -> str:
@@ -456,7 +425,7 @@ class QuarterlyResearchRequest(StrictSchema):
     as_of_date: date
 
     universe_tickers: List[str] = Field(
-        default=fetch_us_universe_tickers(),
+        default_factory=fetch_us_universe_tickers,
         min_length=1,
         description="Ticker universe supplied to the research engine.",
     )
@@ -497,7 +466,7 @@ class QuarterlyResearchRequest(StrictSchema):
     )
 
     refresh_quantitative_inputs: bool = True
-    refresh_recent_data: bool = False
+    refresh_recent_data: bool = True
     use_cache: bool = True
 
     @field_validator("universe_tickers")
@@ -585,7 +554,7 @@ class CompanyResearchRequest(StrictSchema):
     )
 
     comparison_tickers: List[str] = Field(default_factory=list)
-    refresh_recent_data: bool = False
+    refresh_recent_data: bool = True
 
     @field_validator("ticker")
     @classmethod
