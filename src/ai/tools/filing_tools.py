@@ -1193,7 +1193,7 @@ def get_filing_evidence(
     as_of_date: date,
     form_limits: Optional[Dict[str, int]] = None,
     refresh_if_missing: bool = True,
-    refresh_recent_data: bool = False,
+    refresh_recent_data: bool = True,
     include_excerpts: bool = True,
     max_excerpt_characters: Optional[int] = None,
 ) -> List[FilingEvidence]:
@@ -1263,7 +1263,7 @@ def get_holding_filing_evidence(
     ticker: str,
     as_of_date: date,
     refresh_if_missing: bool = True,
-    refresh_recent_data: bool = False,
+    refresh_recent_data: bool = True,
     include_excerpts: bool = True,
 ) -> List[FilingEvidence]:
     """
@@ -1285,7 +1285,7 @@ def get_filing_evidence_for_tickers(
     as_of_date: date,
     form_limits: Optional[Dict[str, int]] = None,
     refresh_if_missing: bool = True,
-    refresh_recent_data: bool = False,
+    refresh_recent_data: bool = True,
     include_excerpts: bool = True,
     max_excerpt_characters: Optional[int] = None,
 ) -> Dict[str, List[FilingEvidence]]:
@@ -1322,7 +1322,7 @@ def get_holding_filing_evidence_for_tickers(
     tickers: Iterable[str],
     as_of_date: date,
     refresh_if_missing: bool = True,
-    refresh_recent_data: bool = False,
+    refresh_recent_data: bool = True,
     include_excerpts: bool = True,
 ) -> Dict[str, List[FilingEvidence]]:
     """

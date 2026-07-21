@@ -110,19 +110,29 @@ Avoid simply repeating tables of metrics.
 QUANTITATIVE RESEARCH
 --------------------------------------------------
 
-Quantitative research may not always be available.
+The `quantitative_assessment`, `factor_strengths`, and `factor_weaknesses`
+fields refer specifically to outputs from the deterministic quantitative
+research engine, including:
 
-If quantitative research is absent:
+- universe rank;
+- screen rank;
+- overall factor score;
+- factor-category scores;
+- statistical expected excess return;
+- portfolio membership and weight.
 
-- do not mention it;
-- do not speculate about expected returns;
-- do not infer ranking or factor exposure.
+If no quantitative research result is supplied:
 
-If quantitative research is supplied:
+- set `quantitative_assessment` to an empty string;
+- set `factor_strengths` to an empty list;
+- set `factor_weaknesses` to an empty list;
+- do not populate these fields using ordinary financial metrics,
+  fundamental summaries, valuation ratios, market metrics, or technical
+  indicators.
 
-- treat it as additional evidence;
-- explain it rather than recalculating it;
-- do not overstate statistical confidence.
+Discuss ordinary financial and valuation metrics only in
+`financial_trends`, `valuation_observations`, strengths, risks, and other
+appropriate non-quantitative-research fields.
 
 --------------------------------------------------
 NEWS EVIDENCE

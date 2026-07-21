@@ -708,7 +708,7 @@ def get_company_core_research_data(
     financial_history_limit: int = 12,
     period_mode: str = "quarterly",
     refresh_if_missing: bool = True,
-    refresh_recent_data: bool = False,
+    refresh_recent_data: bool = True,
 ) -> Dict[str, Any]:
     """
     Build the company-domain data bundle used by research services.
@@ -799,7 +799,7 @@ def get_company_core_research_data_for_tickers(
     financial_history_limit: int = 12,
     period_mode: str = "quarterly",
     refresh_if_missing: bool = True,
-    refresh_recent_data: bool = False,
+    refresh_recent_data: bool = True,
 ) -> Dict[str, Dict[str, Any]]:
     """
     Build company-domain research bundles for multiple tickers.

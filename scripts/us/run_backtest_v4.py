@@ -33,7 +33,7 @@ METHODS = [
     "hierarchical_risk_parity",
 ]
 
-MODEL_VERSION = "stats_only_for_portfolio_selection"
+MODEL_VERSION = "factor_portfolio_selection(score_weighted)"
 TOP_SCREEN_N = 100
 FINAL_PORTFOLIO_N = 5
 METHOD_TOP_N = FINAL_PORTFOLIO_N
@@ -101,7 +101,12 @@ def flatten_rebalance_history(result: dict) -> pd.DataFrame:
 
 
 def flatten_rebalance_weights(result: dict) -> pd.DataFrame:
-    """Convert nested rebalance weights into one row per method/period/ticker."""
+    """
+    Convert nested rebalance data into one row per method/period/ticker.
+
+    Includes every selected ticker, including tickers assigned zero weight,
+    together with predicted and realized return diagnostics.
+    """
 
     rows = []
 
@@ -109,19 +114,71 @@ def flatten_rebalance_weights(result: dict) -> pd.DataFrame:
         history = method_result.get("rebalance_history", [])
 
         for period in history:
+            selected_tickers = period.get("selected_tickers", [])
             weights = period.get("weights", {})
 
-            for ticker, weight in weights.items():
+            predicted_excess_returns = period.get(
+                "predicted_excess_returns",
+                {},
+            )
+            actual_returns = period.get(
+                "actual_returns",
+                {},
+            )
+            benchmark_returns = period.get(
+                "benchmark_returns",
+                {},
+            )
+            forward_excess_returns = period.get(
+                "forward_excess_returns",
+                {},
+            )
+
+            for ticker in selected_tickers:
+                clean_ticker = str(ticker).upper().strip()
+
+                weight = weights.get(clean_ticker, 0.0)
+                predicted_excess_return = predicted_excess_returns.get(
+                    clean_ticker
+                )
+                actual_return = actual_returns.get(clean_ticker)
+                benchmark_return = benchmark_returns.get(clean_ticker)
+                forward_excess_return = forward_excess_returns.get(
+                    clean_ticker
+                )
+
+                prediction_error = None
+
+                if (
+                    predicted_excess_return is not None
+                    and forward_excess_return is not None
+                ):
+                    prediction_error = (
+                        forward_excess_return
+                        - predicted_excess_return
+                    )
+
                 rows.append(
                     {
                         "method_name": method_name,
                         "as_of_date": period.get("as_of_date"),
                         "start_date": period.get("start_date"),
                         "end_date": period.get("end_date"),
-                        "ticker": ticker,
+                        "ticker": clean_ticker,
                         "weight": weight,
+                        "is_weighted": bool(weight != 0.0),
+                        "predicted_excess_return": predicted_excess_return,
+                        "actual_return": actual_return,
+                        "benchmark_return": benchmark_return,
+                        "forward_excess_return": forward_excess_return,
+                        "prediction_error": prediction_error,
                         "period_return": period.get("period_return"),
                         "ending_value": period.get("ending_value"),
+                        "position_status": period.get(
+                            "position_status",
+                            "invested",
+                        ),
+                        "error": period.get("error"),
                     }
                 )
 

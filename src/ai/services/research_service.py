@@ -58,6 +58,9 @@ from src.ai.tools.quant_tools import (
     summarize_quantitative_research,
 )
 
+from src.ai.services.store_universe_tickers import (
+    ingest_us_universe,
+)
 
 # ---------------------------------------------------------------------
 # Service configuration
@@ -852,15 +855,68 @@ def prepare_quarterly_research_context(
     request: QuarterlyResearchRequest,
 ) -> PortfolioResearchContext:
     """
-    Run the quantitative research engine and assemble portfolio context.
+    Refresh optional universe-wide quantitative inputs, run the quantitative
+    research engine, and assemble the final portfolio research context.
 
-    This is the main deterministic service function used before invoking the
-    quarterly portfolio-report agent.
+    Universe-wide market and fundamental refreshes occur before factor scoring
+    and expected-return estimation.
+
+    News and SEC-filing refreshes remain limited to selected holdings and occur
+    later inside build_portfolio_context_from_result.
     """
 
     if not isinstance(request, QuarterlyResearchRequest):
         raise TypeError(
             "request must be a QuarterlyResearchRequest."
+        )
+
+    if request.refresh_quantitative_inputs:
+        ingestion_results = ingest_us_universe(
+            tickers=request.universe_tickers,
+            limit=None,
+            sleep_seconds=0.25,
+            market_period="1y",
+            market_interval="1d",
+            years_back=1,
+            include_quarterly=True,
+            output_csv_path=(
+                "results/us_universe_refresh_results.csv"
+            ),
+            force_refresh=True,
+            max_retries=3,
+            retry_sleep_seconds=10.0,
+            cooldown_seconds=3600.0,
+        )
+
+        if ingestion_results.empty:
+            raise RuntimeError(
+                "Universe refresh returned no ingestion results."
+            )
+
+        successful_count = int(
+            ingestion_results["success"].sum()
+        )
+
+        if successful_count == 0:
+            raise RuntimeError(
+                "Universe refresh failed for every requested ticker."
+            )
+
+        failed_count = (
+            len(ingestion_results) - successful_count
+        )
+
+        print(
+            "\n--- Quarterly Universe Refresh Summary ---"
+        )
+        print(
+            f"Requested: {len(ingestion_results)}"
+        )
+        print(
+            f"Successful: {successful_count}"
+        )
+        print(
+            f"Failed: {failed_count}"
         )
 
     research_result = run_quantitative_research(

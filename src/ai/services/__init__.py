@@ -15,6 +15,13 @@ from src.ai.services.research_service import (
     prepare_quarterly_research_context,
 )
 
+from src.ai.services.store_universe_tickers import (
+    fetch_us_universe_tickers,
+    normalize_universe_tickers,
+    get_existing_storage_status,
+    ingest_one_ticker,
+    ingest_us_universe,
+)
 
 __all__ = [
     "prepare_quarterly_research_context",
@@ -22,4 +29,9 @@ __all__ = [
     "prepare_company_research_context",
     "build_holding_research_context",
     "extract_company_quantitative_context",
+    "fetch_us_universe_tickers",
+    "normalize_universe_tickers",
+    "get_existing_storage_status",
+    "ingest_one_ticker",
+    "ingest_us_universe",
 ]

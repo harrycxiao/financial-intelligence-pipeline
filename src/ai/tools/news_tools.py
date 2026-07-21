@@ -1337,7 +1337,7 @@ def get_news_evidence(
     days_back: int = DEFAULT_RESEARCH_NEWS_DAYS_BACK,
     limit: int = DEFAULT_RESEARCH_NEWS_LIMIT,
     refresh_if_missing: bool = True,
-    refresh_recent_data: bool = False,
+    refresh_recent_data: bool = True,
     include_raw_text_excerpt: bool = True,
     minimum_relevance_score: float = (
         DEFAULT_MINIMUM_RELEVANCE_SCORE
@@ -1465,7 +1465,7 @@ def get_holding_news_evidence(
     ticker: str,
     as_of_date: date,
     refresh_if_missing: bool = True,
-    refresh_recent_data: bool = False,
+    refresh_recent_data: bool = True,
     include_raw_text_excerpt: bool = True,
 ) -> List[NewsEvidence]:
     """Retrieve the smaller default news set for one portfolio holding."""
@@ -1489,7 +1489,7 @@ def get_news_evidence_for_tickers(
     days_back: int = DEFAULT_RESEARCH_NEWS_DAYS_BACK,
     limit_per_ticker: int = DEFAULT_RESEARCH_NEWS_LIMIT,
     refresh_if_missing: bool = True,
-    refresh_recent_data: bool = False,
+    refresh_recent_data: bool = True,
     include_raw_text_excerpt: bool = True,
     minimum_relevance_score: float = (
         DEFAULT_MINIMUM_RELEVANCE_SCORE
@@ -1538,7 +1538,7 @@ def get_holding_news_evidence_for_tickers(
     tickers: Iterable[str],
     as_of_date: date,
     refresh_if_missing: bool = True,
-    refresh_recent_data: bool = False,
+    refresh_recent_data: bool = True,
     include_raw_text_excerpt: bool = True,
 ) -> Dict[str, List[NewsEvidence]]:
     """Retrieve compact holding-news evidence for multiple tickers."""

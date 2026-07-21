@@ -9,6 +9,8 @@ before that data is supplied to an LLM agent.
 
 from datetime import date, datetime
 from typing import Any, Dict, List, Literal, Optional
+from pathlib import Path
+import pandas as pd
 
 from pydantic import (
     BaseModel,
@@ -36,6 +38,39 @@ PeriodMode = Literal[
     "annual",
     "raw",
 ]
+
+
+def fetch_us_universe_tickers(
+    limit: Optional[int] = None,
+    eligible_csv_path: str = "results/us_universe_eligible_tickers.csv",
+) -> list[str]:
+    path = Path(eligible_csv_path)
+
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Could not find eligible ticker file: {eligible_csv_path}. "
+            "Run scripts/filter_us_universe.py first."
+        )
+
+    df = pd.read_csv(path)
+
+    if "ticker" not in df.columns:
+        raise ValueError(f"{eligible_csv_path} must contain a 'ticker' column.")
+
+    tickers = (
+        df["ticker"]
+        .dropna()
+        .astype(str)
+        .str.upper()
+        .str.strip()
+        .drop_duplicates()
+        .tolist()
+    )
+
+    if limit is not None:
+        return tickers[:limit]
+
+    return tickers
 
 
 def normalize_ticker(value: str, field_name: str = "ticker") -> str:
@@ -421,6 +456,7 @@ class QuarterlyResearchRequest(StrictSchema):
     as_of_date: date
 
     universe_tickers: List[str] = Field(
+        default=fetch_us_universe_tickers(),
         min_length=1,
         description="Ticker universe supplied to the research engine.",
     )
@@ -460,6 +496,7 @@ class QuarterlyResearchRequest(StrictSchema):
         le=25,
     )
 
+    refresh_quantitative_inputs: bool = True
     refresh_recent_data: bool = False
     use_cache: bool = True
 

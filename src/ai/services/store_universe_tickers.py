@@ -1,4 +1,4 @@
-# scripts/us/store_us_universe.py
+# src/ai/services/store_universe_tickers.py
 
 from pathlib import Path
 from typing import Optional
@@ -215,20 +215,74 @@ def ingest_one_ticker(
     return result
 
 
-def ingest_us_universe(
+def normalize_universe_tickers(
+    tickers: list[str],
     limit: Optional[int] = None,
+) -> list[str]:
+    """
+    Normalize and deduplicate a supplied ticker universe while preserving order.
+    """
+
+    normalized_tickers: list[str] = []
+    seen: set[str] = set()
+
+    for ticker in tickers:
+        clean_ticker = str(ticker).upper().strip()
+
+        if not clean_ticker:
+            continue
+
+        if clean_ticker in seen:
+            continue
+
+        seen.add(clean_ticker)
+        normalized_tickers.append(clean_ticker)
+
+    if limit is not None:
+        return normalized_tickers[:limit]
+
+    return normalized_tickers
+
+
+def ingest_us_universe(
+    tickers: Optional[list[str]] = None,
+    limit: Optional[int] = None,
+    eligible_csv_path: str = "results/us_universe_eligible_tickers.csv",
     sleep_seconds: float = 0.25,
-    market_period: str = "20y",
+    market_period: str = "1y",
     market_interval: str = "1d",
-    years_back: int = 20,
+    years_back: int = 1,
     include_quarterly: bool = True,
-    output_csv_path: str = "results/us_universe_ingestion_results.csv",
+    output_csv_path: str = "results/us_universe_refresh_results.csv",
     force_refresh: bool = True,
     max_retries: int = 3,
     retry_sleep_seconds: float = 10.0,
     cooldown_seconds: float = 3600.0,
 ) -> pd.DataFrame:
-    tickers = fetch_us_universe_tickers(limit=limit)
+    """
+    Refresh market and fundamental inputs for a stock universe.
+
+    When tickers are supplied, that exact normalized universe is refreshed.
+    Otherwise, tickers are loaded from the eligible-universe CSV.
+    """
+
+    if tickers is None:
+        clean_tickers = fetch_us_universe_tickers(
+            limit=limit,
+            eligible_csv_path=eligible_csv_path,
+        )
+    else:
+        clean_tickers = normalize_universe_tickers(
+            tickers=tickers,
+            limit=limit,
+        )
+
+    if not clean_tickers:
+        raise ValueError(
+            "No valid tickers were supplied for universe ingestion."
+        )
+
+    tickers = clean_tickers
     results = []
 
     print(f"Starting ingestion for {len(tickers)} tickers.")
@@ -277,17 +331,10 @@ def ingest_us_universe(
 
     return results_df
 
-
-if __name__ == "__main__":
-    ingest_us_universe(
-        limit=None,
-        sleep_seconds=0.25,
-        market_period="20y",
-        market_interval="1d",
-        years_back=20,
-        include_quarterly=True,
-        force_refresh=True,
-        max_retries=3,
-        retry_sleep_seconds=10.0,
-        cooldown_seconds=3600.0,
-    )
+__all__ = [
+    "fetch_us_universe_tickers",
+    "normalize_universe_tickers",
+    "get_existing_storage_status",
+    "ingest_one_ticker",
+    "ingest_us_universe",
+]
