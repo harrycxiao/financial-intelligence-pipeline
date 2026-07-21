@@ -274,7 +274,7 @@ def build_research_portfolio_weights(
     if method == "score_weighted":
         return score_weighted_portfolio(
             tickers=tickers,
-            score_column=FINAL_ALPHA_COLUMN,
+            score_column="overall_score",
             top_n=top_n,
             as_of_date=as_of_date,
             period_mode=config.period_mode,
@@ -284,7 +284,7 @@ def build_research_portfolio_weights(
     if method == "risk_adjusted_score_weighted":
         return risk_adjusted_score_portfolio(
             tickers=tickers,
-            score_column=FINAL_ALPHA_COLUMN,
+            score_column="overall_score",
             risk_column="annualized_volatility",
             top_n=top_n,
             as_of_date=as_of_date,
