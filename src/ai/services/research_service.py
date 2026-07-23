@@ -919,6 +919,28 @@ def prepare_quarterly_research_context(
             f"Failed: {failed_count}"
         )
 
+        from src.ingestion.market_data_ingestion import fetch_market_data
+        from src.database.store import store_market_data
+
+        print(
+            "\nRefreshing SPY benchmark market data..."
+        )
+
+        spy_market_data = fetch_market_data(
+            ticker="SPY",
+            period="1y",
+            interval="1d",
+        )
+
+        store_market_data(
+            ticker="SPY",
+            df=spy_market_data,
+        )
+
+        print(
+            "SPY benchmark market data refreshed."
+        )
+
     research_result = run_quantitative_research(
         request
     )

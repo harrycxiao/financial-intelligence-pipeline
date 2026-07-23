@@ -118,6 +118,7 @@ def rank_factor_universe(
     top_screen_n: int = 100,
     final_portfolio_n: int = 5,
     period_mode: str = "quarterly",
+    eligible_tickers: Optional[list[str]] = None,
 ) -> dict:
     """
     Apply the two-stage factor-selection process.
@@ -129,12 +130,46 @@ def rank_factor_universe(
         Recalculate cross-sectional factor scores within the screened
         universe and retain the final portfolio candidates.
     """
+    """from src.analytics.predictive_models.data_structures import get_snapshot_path
+    
+    snapshot_path = get_snapshot_path(as_of_date)
 
+    if snapshot_path.exists():
+        full_factor_scores = pd.read_csv(snapshot_path)
+    else:
+        full_factor_scores = calculate_factor_scores(
+            tickers=tickers,
+            as_of_date=as_of_date,
+            period_mode=period_mode,
+        )
+
+        full_factor_scores.to_csv(snapshot_path, index=False)"""
+    
     full_factor_scores = calculate_factor_scores(
         tickers=tickers,
         as_of_date=as_of_date,
         period_mode=period_mode,
     )
+
+    if eligible_tickers is not None:
+        eligible_set = {
+            ticker.upper().strip()
+            for ticker in eligible_tickers
+        }
+
+        eligible_mask = (
+            full_factor_scores["ticker"]
+            .astype(str)
+            .str.upper()
+            .str.strip()
+            .isin(eligible_set)
+        )
+
+        full_factor_scores = full_factor_scores.loc[
+            eligible_mask,
+            :
+        ].copy()
+
 
     if full_factor_scores.empty:
         return {
@@ -151,7 +186,6 @@ def rank_factor_universe(
             "Factor-score dataframe must contain 'ticker' and 'overall_score'."
         )
 
-    full_factor_scores = full_factor_scores.copy()
     full_factor_scores["ticker"] = (
         full_factor_scores["ticker"]
         .astype(str)
@@ -392,11 +426,12 @@ def run_research_engine(
         )
 
     factor_results = rank_factor_universe(
-        tickers=eligible_tickers,
+        tickers=clean_universe,
         as_of_date=as_of_date,
         top_screen_n=config.top_screen_n,
         final_portfolio_n=config.final_portfolio_n,
         period_mode=config.period_mode,
+        eligible_tickers=eligible_tickers,
     )
 
     selected_tickers = factor_results["selected_tickers"]
@@ -413,7 +448,7 @@ def run_research_engine(
     )
 
     alpha_scores = calculate_alpha_expected_returns(
-        tickers=eligible_tickers,
+        tickers=clean_universe,
         training_as_of_dates=training_as_of_dates,
         current_as_of_date=as_of_date,
         period_mode=config.period_mode,

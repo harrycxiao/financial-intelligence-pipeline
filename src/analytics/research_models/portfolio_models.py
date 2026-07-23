@@ -785,8 +785,8 @@ def risk_adjusted_score_portfolio(
     )
 
     clean_tickers = [
-        str(t).upper().strip()
-        for t in tickers
+        str(ticker).upper().strip()
+        for ticker in tickers
     ]
 
     scores = scores[
@@ -800,12 +800,23 @@ def risk_adjusted_score_portfolio(
     ):
         return {}
 
+    scores[score_column] = pd.to_numeric(
+        scores[score_column],
+        errors="coerce",
+    )
+
+    scores[risk_column] = pd.to_numeric(
+        scores[risk_column],
+        errors="coerce",
+    )
+
     scores = scores[
         scores[score_column].notna()
+        & scores[risk_column].notna()
     ].copy()
 
     scores = scores[
-        scores[risk_column].notna()
+        scores[risk_column] > 0
     ].copy()
 
     scores = scores.sort_values(
@@ -813,14 +824,18 @@ def risk_adjusted_score_portfolio(
         ascending=False,
     )
 
+    # Leave commented if all passed tickers should be weighted.
     # if top_n is not None:
     #     scores = scores.head(top_n)
 
-    risk = scores[risk_column].replace(0, np.nan)
+    risk_adjusted_scores = (
+        scores[score_column]
+        / scores[risk_column]
+    )
 
     raw_weights = pd.Series(
-        scores[score_column] / risk,
-        index=scores["ticker"],
+        risk_adjusted_scores.to_numpy(),
+        index=scores["ticker"].to_numpy(),
         dtype=float,
     )
 

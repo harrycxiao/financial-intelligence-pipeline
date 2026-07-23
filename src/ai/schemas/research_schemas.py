@@ -18,10 +18,6 @@ from pydantic import (
     model_validator,
 )
 
-from src.ai.services.store_universe_tickers import (
-    fetch_us_universe_tickers,
-)
-
 
 PortfolioMethod = Literal[
     "equal_weight",
@@ -40,6 +36,20 @@ PeriodMode = Literal[
     "annual",
     "raw",
 ]
+
+
+def fetch_default_universe_tickers() -> List[str]:
+    """
+    Lazily load the default US equity universe.
+
+    The import is intentionally local to avoid a circular import between
+    research_schemas and the AI services package during module initialization.
+    """
+    from src.ai.services.store_universe_tickers import (
+        fetch_us_universe_tickers,
+    )
+
+    return fetch_us_universe_tickers()
 
 
 def normalize_ticker(value: str, field_name: str = "ticker") -> str:
@@ -425,7 +435,7 @@ class QuarterlyResearchRequest(StrictSchema):
     as_of_date: date
 
     universe_tickers: List[str] = Field(
-        default_factory=fetch_us_universe_tickers,
+        default_factory=fetch_default_universe_tickers,
         min_length=1,
         description="Ticker universe supplied to the research engine.",
     )

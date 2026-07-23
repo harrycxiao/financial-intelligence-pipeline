@@ -1,6 +1,7 @@
 # src/analytics/research_models/backtesting.py
 
 from datetime import date
+import math
 from typing import Optional
 
 import numpy as np
@@ -51,6 +52,131 @@ def filter_returns_by_date(
         filtered = filtered.loc[filtered.index <= pd.to_datetime(end_date), :].copy()
 
     return filtered
+
+
+def calculate_ticker_holding_period_return(
+    ticker: str,
+    start_date: date,
+    end_date: date,
+) -> Optional[float]:
+    """
+    Calculate one ticker's compounded return over a holding period.
+
+    The ticker is queried independently so missing history for another stock
+    cannot remove dates through an inner join.
+    """
+
+    clean_ticker = str(ticker).upper().strip()
+
+    returns = get_returns_matrix([clean_ticker])
+
+    if returns.empty or clean_ticker not in returns.columns:
+        return None
+
+    returns = filter_returns_by_date(
+        returns=returns,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    ticker_returns = returns[clean_ticker].dropna()
+
+    if ticker_returns.empty:
+        return None
+
+    return float((1.0 + ticker_returns).prod() - 1.0)
+
+
+def build_selected_ticker_return_diagnostics(
+    selected_tickers: list,
+    alpha_scores_df: pd.DataFrame,
+    start_date: date,
+    end_date: date,
+    benchmark_ticker: str = "SPY",
+    alpha_column: str = FINAL_ALPHA_COLUMN,
+) -> dict:
+    """
+    Build predicted and realized return diagnostics for selected tickers.
+
+    Returns ticker-keyed dictionaries that can be stored once in each
+    rebalance-history entry and later flattened into one row per ticker.
+    """
+
+    clean_tickers = clean_ticker_list(selected_tickers)
+
+    benchmark_return = calculate_ticker_holding_period_return(
+        ticker=benchmark_ticker,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    predicted_excess_returns = {}
+    actual_returns = {}
+    benchmark_returns = {}
+    forward_excess_returns = {}
+
+    if (
+        alpha_scores_df is not None
+        and not alpha_scores_df.empty
+        and "ticker" in alpha_scores_df.columns
+        and alpha_column in alpha_scores_df.columns
+    ):
+        alpha_lookup_df = alpha_scores_df.loc[
+            :,
+            ["ticker", alpha_column],
+        ].copy()
+
+        alpha_lookup_df["ticker"] = (
+            alpha_lookup_df["ticker"]
+            .astype(str)
+            .str.upper()
+            .str.strip()
+        )
+
+        alpha_lookup_df = alpha_lookup_df.drop_duplicates(
+            subset=["ticker"],
+            keep="last",
+        )
+
+        alpha_lookup = (
+            alpha_lookup_df
+            .set_index("ticker")[alpha_column]
+            .to_dict()
+        )
+    else:
+        alpha_lookup = {}
+
+    for ticker in clean_tickers:
+        predicted_value = alpha_lookup.get(ticker)
+
+        if predicted_value is not None and pd.notna(predicted_value):
+            predicted_excess_returns[ticker] = float(predicted_value)
+        else:
+            predicted_excess_returns[ticker] = None
+
+        actual_return = calculate_ticker_holding_period_return(
+            ticker=ticker,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        actual_returns[ticker] = actual_return
+        benchmark_returns[ticker] = benchmark_return
+
+        if actual_return is not None and benchmark_return is not None:
+            forward_excess_returns[ticker] = float(
+                actual_return - benchmark_return
+            )
+        else:
+            forward_excess_returns[ticker] = None
+
+    return {
+        "predicted_excess_returns": predicted_excess_returns,
+        "actual_returns": actual_returns,
+        "benchmark_returns": benchmark_returns,
+        "forward_excess_returns": forward_excess_returns,
+    }
+
 
 def build_cash_return_series(
     reference_tickers: list,
@@ -192,7 +318,7 @@ def calculate_backtest_metrics(
         else None
     )
 
-    annualized_volatility = float(clean_returns.std() * np.sqrt(trading_days))
+    annualized_volatility = float(clean_returns.std()) * math.sqrt(trading_days)
 
     excess_annualized_return = (
         annualized_return - risk_free_rate
@@ -510,7 +636,7 @@ def build_portfolio_weights(
     if method == "score_weighted":
         return score_weighted_portfolio(
             tickers=tickers,
-            score_column=score_column,
+            score_column="overall_score",
             top_n=top_n,
             as_of_date=as_of_date,
             period_mode=period_mode,
@@ -520,7 +646,7 @@ def build_portfolio_weights(
     if method == "risk_adjusted_score_weighted":
         return risk_adjusted_score_portfolio(
             tickers=tickers,
-            score_column=score_column,
+            score_column="overall_score",
             risk_column=risk_column,
             top_n=top_n,
             as_of_date=as_of_date,
@@ -1001,6 +1127,24 @@ def compare_rebalanced_portfolio_methods_backtest(
             minimum_return_rows=minimum_return_rows,
         )
 
+        ticker_return_diagnostics = (
+            build_selected_ticker_return_diagnostics(
+                selected_tickers=selected_tickers,
+                alpha_scores_df=combined_scores_df,
+                start_date=period_start,
+                end_date=period_end,
+                benchmark_ticker="SPY",
+                alpha_column=FINAL_ALPHA_COLUMN,
+            )
+            if selected_tickers
+            else {
+                "predicted_excess_returns": {},
+                "actual_returns": {},
+                "benchmark_returns": {},
+                "forward_excess_returns": {},
+            }
+        )
+
         for method_name in methods:
             state = method_state[method_name]
             current_value = state["current_value"]
@@ -1016,6 +1160,7 @@ def compare_rebalanced_portfolio_methods_backtest(
                         "period_return": None,
                         "ending_value": current_value,
                         "error": "No selected tickers.",
+                        **ticker_return_diagnostics,
                     }
                 )
                 continue
@@ -1069,6 +1214,7 @@ def compare_rebalanced_portfolio_methods_backtest(
                             "cash_reason": (
                                 "Portfolio method produced no positive long-only weights."
                             ),
+                            **ticker_return_diagnostics,
                         }
                     )
                     continue
@@ -1091,11 +1237,12 @@ def compare_rebalanced_portfolio_methods_backtest(
                             "period_return": None,
                             "ending_value": current_value,
                             "error": "No returns during holding window.",
+                            **ticker_return_diagnostics,
                         }
                     )
                     continue
 
-                period_returns = calculate_portfolio_return_series(
+                """period_returns = calculate_portfolio_return_series(
                     weights=weights,
                     returns=returns,
                 )
@@ -1111,6 +1258,7 @@ def compare_rebalanced_portfolio_methods_backtest(
                             "period_return": None,
                             "ending_value": current_value,
                             "error": "Could not calculate portfolio returns.",
+                            **ticker_return_diagnostics,
                         }
                     )
                     continue
@@ -1128,6 +1276,31 @@ def compare_rebalanced_portfolio_methods_backtest(
 
                 current_value = float(period_equity.iloc[-1])
                 state["current_value"] = current_value
+                state["period_returns"].append(period_returns)"""
+
+                # Convert daily returns into cumulative growth for each stock
+                ticker_equity = (1.0 + returns.fillna(0.0)).cumprod()
+
+                # Portfolio value if each position is simply held for the quarter
+                portfolio_equity = ticker_equity.mul(
+                    pd.Series(weights),
+                    axis=1,
+                ).sum(axis=1)
+
+                portfolio_equity *= current_value
+
+                # Daily portfolio returns (now reflecting drifting weights)
+                period_returns = portfolio_equity.pct_change().fillna(0.0)
+                period_returns.name = "portfolio_return"
+
+                period_return = (
+                    float(portfolio_equity.iloc[-1] / current_value - 1)
+                    if current_value != 0
+                    else None
+                )
+
+                current_value = float(portfolio_equity.iloc[-1])
+                state["current_value"] = current_value
                 state["period_returns"].append(period_returns)
 
                 state["rebalance_history"].append(
@@ -1140,6 +1313,7 @@ def compare_rebalanced_portfolio_methods_backtest(
                         "period_return": period_return,
                         "ending_value": current_value,
                         "error": None,
+                        **ticker_return_diagnostics,
                     }
                 )
 
@@ -1154,6 +1328,7 @@ def compare_rebalanced_portfolio_methods_backtest(
                         "period_return": None,
                         "ending_value": current_value,
                         "error": str(error),
+                        **ticker_return_diagnostics,
                     }
                 )
 

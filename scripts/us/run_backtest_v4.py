@@ -33,7 +33,7 @@ METHODS = [
     "hierarchical_risk_parity",
 ]
 
-MODEL_VERSION = "factor_portfolio_selection(score_weighted)"
+MODEL_VERSION = "factor_portfolio_selection(true_quarterly_rebalance)"
 TOP_SCREEN_N = 100
 FINAL_PORTFOLIO_N = 5
 METHOD_TOP_N = FINAL_PORTFOLIO_N
