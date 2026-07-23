@@ -130,7 +130,7 @@ def rank_factor_universe(
         Recalculate cross-sectional factor scores within the screened
         universe and retain the final portfolio candidates.
     """
-    """from src.analytics.predictive_models.data_structures import get_snapshot_path
+    from src.analytics.predictive_models.data_structures import get_snapshot_path
     
     snapshot_path = get_snapshot_path(as_of_date)
 
@@ -143,14 +143,8 @@ def rank_factor_universe(
             period_mode=period_mode,
         )
 
-        full_factor_scores.to_csv(snapshot_path, index=False)"""
+        full_factor_scores.to_csv(snapshot_path, index=False)
     
-    full_factor_scores = calculate_factor_scores(
-        tickers=tickers,
-        as_of_date=as_of_date,
-        period_mode=period_mode,
-    )
-
     if eligible_tickers is not None:
         eligible_set = {
             ticker.upper().strip()

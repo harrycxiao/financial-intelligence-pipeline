@@ -33,9 +33,9 @@ METHODS = [
     "hierarchical_risk_parity",
 ]
 
-MODEL_VERSION = "factor_portfolio_selection(true_quarterly_rebalance)"
+MODEL_VERSION = "factor_portfolio_selection(true_quarterly_rebalance_10_stock)"
 TOP_SCREEN_N = 100
-FINAL_PORTFOLIO_N = 5
+FINAL_PORTFOLIO_N = 10
 METHOD_TOP_N = FINAL_PORTFOLIO_N
 
 
