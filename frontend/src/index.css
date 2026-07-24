@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+.pdf-export-container {
+    position: fixed;
+    top: 0;
+    left: -10000px;
+    width: 816px;
+    background: white;
+    pointer-events: none;
+}
+
+.pdf-document {
+    width: 816px;
+    padding: 32px;
+    background: white;
+    color: #0f172a;
+}
+
+.pdf-section {
+    margin-top: 24px;
+}
+
+.pdf-avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.pdf-page-break-before {
+    break-before: page;
+    page-break-before: always;
+}
+
+.pdf-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.pdf-block + .pdf-block {
+    margin-top: 24px;
+}
+
+.pdf-allow-split {
+    break-inside: auto;
+    page-break-inside: auto;
+}
