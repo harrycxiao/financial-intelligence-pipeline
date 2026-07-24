@@ -12,6 +12,10 @@ The API layer does not perform quantitative analysis or construct report
 content directly.
 """
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 from fastapi import (
     APIRouter,
     HTTPException,
@@ -80,6 +84,12 @@ async def create_portfolio_report(
             detail=str(exc),
         ) from exc
 
+    except Exception:
+        logger.exception(
+            "Unexpected error while preparing portfolio report."
+        )
+        raise
+    
     return await generate_portfolio_report_async(
         context=context,
     )

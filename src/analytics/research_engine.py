@@ -143,6 +143,10 @@ def rank_factor_universe(
             period_mode=period_mode,
         )
 
+        # Preserve the same schema as build_factor_snapshot()
+        full_factor_scores = full_factor_scores.copy()
+        full_factor_scores["as_of_date"] = as_of_date
+
         full_factor_scores.to_csv(snapshot_path, index=False)
     
     if eligible_tickers is not None:
