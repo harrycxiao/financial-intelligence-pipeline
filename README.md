@@ -142,7 +142,6 @@ Rather than a collection of standalone scripts, the platform is designed as a mo
 ### Developer Tools
 
 - Git
-- Docker
 
 ---
 
