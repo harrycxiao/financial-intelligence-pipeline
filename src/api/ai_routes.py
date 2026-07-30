@@ -174,9 +174,8 @@ async def chat(
 
     try:
         answer = await answer_financial_question(
-            request.message,
+            message=request.message,
         )
-
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

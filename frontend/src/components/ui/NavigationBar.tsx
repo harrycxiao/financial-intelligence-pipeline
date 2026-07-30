@@ -1,8 +1,19 @@
 import Button from "./Button";
 
 interface NavigationBarProps {
-    currentPage: "company" | "portfolio";
-    onNavigate: (page: "company" | "portfolio") => void;
+    currentPage:
+        | "home"
+        | "chat"
+        | "company"
+        | "portfolio";
+
+    onNavigate: (
+        page:
+            | "home"
+            | "chat"
+            | "company"
+            | "portfolio"
+    ) => void;
 }
 
 export default function NavigationBar({
@@ -26,7 +37,7 @@ export default function NavigationBar({
         >
             <div>
                 <h1 className="text-xl font-bold text-slate-900">
-                    Financial Intelligence Pipeline
+                    Financial Intelligence Platform
                 </h1>
 
                 <p className="text-sm text-slate-500">
@@ -35,6 +46,28 @@ export default function NavigationBar({
             </div>
 
             <nav className="flex gap-3">
+                <Button
+                    variant={
+                        currentPage === "home"
+                            ? "primary"
+                            : "secondary"
+                    }
+                    onClick={() => onNavigate("home")}
+                >
+                    Home
+                </Button>
+
+                <Button
+                    variant={
+                        currentPage === "chat"
+                            ? "primary"
+                            : "secondary"
+                    }
+                    onClick={() => onNavigate("chat")}
+                >
+                    AI Chat
+                </Button>
+
                 <Button
                     variant={
                         currentPage === "company"

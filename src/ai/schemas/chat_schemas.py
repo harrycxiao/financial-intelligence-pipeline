@@ -1,17 +1,8 @@
 from pydantic import BaseModel
-
+from typing import Literal
 
 class ChatRequest(BaseModel):
-    """
-    Incoming chat request.
-    """
-
     message: str
 
-
 class ChatResponse(BaseModel):
-    """
-    Outgoing chat response.
-    """
-
     answer: str

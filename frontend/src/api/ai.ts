@@ -10,6 +10,8 @@
 import { post } from "./client";
 
 import type {
+    ChatRequest,
+    ChatResponse,
     CompanyResearchRequest,
     CompanyResearchReport,
     QuarterlyResearchRequest,
@@ -44,6 +46,22 @@ export async function generatePortfolioResearch(
         QuarterlyPortfolioReport
     >(
         "/api/ai/portfolio-report",
+        request
+    );
+}
+
+/* --------------------------------------------------------------------------
+ * Financial Chat
+ * -------------------------------------------------------------------------- */
+
+export async function sendChatMessage(
+    request: ChatRequest
+): Promise<ChatResponse> {
+    return post<
+        ChatRequest,
+        ChatResponse
+    >(
+        "/api/ai/chat",
         request
     );
 }

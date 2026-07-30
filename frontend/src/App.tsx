@@ -13,52 +13,63 @@ import {
 } from "./components/ui";
 
 import {
+    ChatPage,
     CompanyResearchPage,
+    HomePage,
     PortfolioResearchPage,
 } from "./pages";
 
 
-/* --------------------------------------------------------------------------
- * Types
- * -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Types                                                                      */
+/* -------------------------------------------------------------------------- */
 
 type AppPage =
+    | "home"
+    | "chat"
     | "company"
     | "portfolio";
 
 
-/* --------------------------------------------------------------------------
- * Route Constants
- * -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Route Constants                                                            */
+/* -------------------------------------------------------------------------- */
 
 const APP_ROUTES = {
+    home: "/",
+    chat: "/chat",
     company: "/company-research",
     portfolio: "/portfolio-research",
 } as const;
 
 
-/* --------------------------------------------------------------------------
- * Route Helpers
- * -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Route Helpers                                                              */
+/* -------------------------------------------------------------------------- */
 
 function getCurrentPage(
     pathname: string,
 ): AppPage {
-    if (
-        pathname.startsWith(
-            APP_ROUTES.portfolio,
-        )
-    ) {
+
+    if (pathname.startsWith(APP_ROUTES.chat)) {
+        return "chat";
+    }
+
+    if (pathname.startsWith(APP_ROUTES.company)) {
+        return "company";
+    }
+
+    if (pathname.startsWith(APP_ROUTES.portfolio)) {
         return "portfolio";
     }
 
-    return "company";
+    return "home";
 }
 
 
-/* --------------------------------------------------------------------------
- * Routed Application
- * -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Routed Application                                                         */
+/* -------------------------------------------------------------------------- */
 
 function RoutedApp() {
     const location = useLocation();
@@ -82,16 +93,19 @@ function RoutedApp() {
             />
 
             <Routes>
-                {/* Default Route */}
+
+                {/* Home */}
 
                 <Route
-                    path="/"
-                    element={
-                        <Navigate
-                            to={APP_ROUTES.company}
-                            replace
-                        />
-                    }
+                    path={APP_ROUTES.home}
+                    element={<HomePage />}
+                />
+
+                {/* AI Chat */}
+
+                <Route
+                    path={APP_ROUTES.chat}
+                    element={<ChatPage />}
                 />
 
                 {/* Company Research */}
@@ -118,20 +132,21 @@ function RoutedApp() {
                     path="*"
                     element={
                         <Navigate
-                            to={APP_ROUTES.company}
+                            to={APP_ROUTES.home}
                             replace
                         />
                     }
                 />
+
             </Routes>
         </Layout>
     );
 }
 
 
-/* --------------------------------------------------------------------------
- * Application
- * -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Application                                                                */
+/* -------------------------------------------------------------------------- */
 
 export default function App() {
     return (
