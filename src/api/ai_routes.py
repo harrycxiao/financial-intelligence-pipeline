@@ -38,6 +38,15 @@ from src.ai.services import (
     prepare_quarterly_research_context,
 )
 
+from src.ai.schemas import (
+    ChatRequest,
+    ChatResponse,
+)
+
+from src.ai.services import (
+    answer_financial_question,
+)
+
 
 router = APIRouter(
     prefix="/api/ai",
@@ -138,6 +147,56 @@ async def create_company_report(
 
     return await generate_company_report_async(
         context=context,
+    )
+
+
+@router.post(
+    "/chat",
+    response_model=ChatResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Chat with the financial research assistant",
+)
+async def chat(
+    request: ChatRequest,
+) -> ChatResponse:
+    """
+    Answer natural-language financial questions.
+
+    Unlike the report-generation endpoints, this endpoint does not construct
+    a complete deterministic research context before invoking the LLM.
+
+    Instead, the financial chat agent dynamically selects deterministic tools
+    during execution to retrieve only the information needed to answer the
+    user's question.
+
+    The response is returned as natural language.
+    """
+
+    try:
+        answer = await answer_financial_question(
+            request.message,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+    except Exception:
+        logger.exception(
+            "Unexpected error while processing chat request."
+        )
+        raise
+
+    return ChatResponse(
+        answer=answer,
     )
 
 
