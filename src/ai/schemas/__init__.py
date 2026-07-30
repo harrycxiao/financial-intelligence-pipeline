@@ -29,6 +29,11 @@ from src.ai.schemas.report_schemas import (
     QuarterlyPortfolioReport,
 )
 
+from src.ai.schemas.chat_schemas import (
+    ChatRequest,
+    ChatResponse,
+)
+
 
 __all__ = [
     # Research requests
@@ -48,4 +53,8 @@ __all__ = [
     "PortfolioRiskReport",
     "QuarterlyPortfolioReport",
     "CompanyResearchReport",
+
+    # Chat request/response
+    "ChatRequest",
+    "ChatResponse",
 ]

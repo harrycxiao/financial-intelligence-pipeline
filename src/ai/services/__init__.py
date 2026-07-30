@@ -23,6 +23,10 @@ from src.ai.services.store_universe_tickers import (
     ingest_us_universe,
 )
 
+from src.ai.services.chat_service import (
+    answer_financial_question,
+)
+
 __all__ = [
     "prepare_quarterly_research_context",
     "build_portfolio_context_from_result",
@@ -34,4 +38,5 @@ __all__ = [
     "get_existing_storage_status",
     "ingest_one_ticker",
     "ingest_us_universe",
+    "answer_financial_question",
 ]
