@@ -27,15 +27,20 @@ export default function PortfolioResearchPage() {
                 gap-8
                 lg:grid-cols-[360px_1fr]
                 xl:grid-cols-[380px_1fr]
+                lg:items-stretch
             "
         >
-            <PortfolioForm
-                onReportGenerated={setReport}
-            />
+            <div className="h-full">
+                <PortfolioForm
+                    onReportGenerated={setReport}
+                />
+            </div>
 
-            <PortfolioResults
-                report={report}
-            />
+            <div className="h-full">
+                <PortfolioResults
+                    report={report}
+                />
+            </div>
         </section>
     );
 }

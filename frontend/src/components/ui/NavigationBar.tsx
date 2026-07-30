@@ -36,7 +36,7 @@ export default function NavigationBar({
             "
         >
             <div>
-                <h1 className="text-xl font-bold text-slate-900">
+                <h1 className="text-xl font-semibold tracking-tight text-slate-900">
                     Financial Intelligence Platform
                 </h1>
 
@@ -45,46 +45,54 @@ export default function NavigationBar({
                 </p>
             </div>
 
-            <nav className="flex gap-3">
+            <nav className="flex flex-wrap items-center gap-3">
                 <Button
                     variant={
                         currentPage === "home"
                             ? "primary"
                             : "secondary"
                     }
+                    size="large"
+                    className="rounded-xl"
                     onClick={() => onNavigate("home")}
                 >
                     Home
                 </Button>
 
                 <Button
+                    size="large"
                     variant={
                         currentPage === "chat"
                             ? "primary"
                             : "secondary"
                     }
+                    className="rounded-xl"
                     onClick={() => onNavigate("chat")}
                 >
                     AI Chat
                 </Button>
 
                 <Button
+                    size="large"
                     variant={
                         currentPage === "company"
                             ? "primary"
                             : "secondary"
                     }
+                    className="rounded-xl"
                     onClick={() => onNavigate("company")}
                 >
                     Company Research
                 </Button>
 
                 <Button
+                    size="large"
                     variant={
                         currentPage === "portfolio"
                             ? "primary"
                             : "secondary"
                     }
+                    className="rounded-xl"
                     onClick={() => onNavigate("portfolio")}
                 >
                     Portfolio Research

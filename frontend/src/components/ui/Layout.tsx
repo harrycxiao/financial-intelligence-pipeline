@@ -12,8 +12,8 @@ export default function Layout({
             className="
                 min-h-screen
                 bg-slate-100
-                px-8
-                py-8
+                px-6
+                py-10
             "
         >
             <div
@@ -22,7 +22,7 @@ export default function Layout({
                     flex
                     max-w-7xl
                     flex-col
-                    gap-8
+                    gap-10
                 "
             >
                 {children}

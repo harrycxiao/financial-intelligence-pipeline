@@ -453,9 +453,9 @@ export default function PortfolioForm({
                             py-2
                             outline-none
                             transition
-                            focus:border-blue-500
+                            focus:border-emerald-500
                             focus:ring-2
-                            focus:ring-blue-200
+                            focus:ring-emerald-200
                             disabled:cursor-not-allowed
                             disabled:bg-slate-100
                         "
@@ -505,9 +505,9 @@ export default function PortfolioForm({
                             py-2
                             outline-none
                             transition
-                            focus:border-blue-500
+                            focus:border-emerald-500
                             focus:ring-2
-                            focus:ring-blue-200
+                            focus:ring-emerald-200
                             disabled:cursor-not-allowed
                             disabled:bg-slate-100
                         "
@@ -572,9 +572,9 @@ export default function PortfolioForm({
                             py-2
                             outline-none
                             transition
-                            focus:border-blue-500
+                            focus:border-emerald-500
                             focus:ring-2
-                            focus:ring-blue-200
+                            focus:ring-emerald-200
                             disabled:cursor-not-allowed
                             disabled:bg-slate-100
                         "
@@ -614,9 +614,9 @@ export default function PortfolioForm({
                     className="
                         text-sm
                         font-medium
-                        text-blue-600
+                        text-emerald-700
                         transition
-                        hover:text-blue-700
+                        hover:text-emerald-900
                         disabled:cursor-not-allowed
                         disabled:opacity-50
                     "
@@ -671,8 +671,8 @@ export default function PortfolioForm({
                                     w-4
                                     rounded
                                     border-slate-300
-                                    text-blue-600
-                                    focus:ring-blue-500
+                                    text-emerald-700
+                                    focus:ring-emerald-500
                                 "
                             />
 
@@ -710,8 +710,8 @@ export default function PortfolioForm({
                                     w-4
                                     rounded
                                     border-slate-300
-                                    text-blue-600
-                                    focus:ring-blue-500
+                                    text-emerald-700
+                                    focus:ring-emerald-500
                                 "
                             />
 
@@ -757,8 +757,8 @@ export default function PortfolioForm({
                                     w-4
                                     rounded
                                     border-slate-300
-                                    text-blue-600
-                                    focus:ring-blue-500
+                                    text-emerald-700
+                                    focus:ring-emerald-500
                                 "
                             />
 
@@ -792,8 +792,8 @@ export default function PortfolioForm({
                                     w-4
                                     rounded
                                     border-slate-300
-                                    text-blue-600
-                                    focus:ring-blue-500
+                                    text-emerald-700
+                                    focus:ring-emerald-500
                                 "
                             />
 

@@ -38,21 +38,20 @@ export default function ChatWindow({
                 <div
                     className="
                         flex
-                        h-full
+                        min-h-[240px]
                         items-center
                         justify-center
                         text-center
                         text-slate-500
                     "
                 >
-                    <div>
-                        <h2 className="text-2xl font-semibold mb-2">
+                    <div className="space-y-4 px-4">
+                        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
                             Financial AI Assistant
                         </h2>
 
-                        <p>
-                            Ask about companies, financial statements,
-                            SEC filings, news, or investment research.
+                        <p className="max-w-xl mx-auto text-sm leading-6 text-slate-600">
+                            Ask about companies, financial statements, SEC filings, news, or investment research.
                         </p>
                     </div>
                 </div>

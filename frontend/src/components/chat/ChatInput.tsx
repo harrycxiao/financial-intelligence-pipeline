@@ -72,7 +72,7 @@ export default function ChatInput({
                         p-3
                         focus:outline-none
                         focus:ring-2
-                        focus:ring-blue-500
+                        focus:ring-emerald-300
                     "
                     rows={3}
                     placeholder="Ask about a company, financial statements, news, SEC filings..."

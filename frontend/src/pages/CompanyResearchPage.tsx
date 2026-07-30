@@ -21,9 +21,10 @@ export default function CompanyResearchPage() {
                 grid
                 gap-8
                 lg:grid-cols-3
+                lg:items-stretch
             "
         >
-            <div>
+            <div className="h-full">
                 <CompanyForm
                     onReportGenerated={
                         setReport
@@ -31,7 +32,7 @@ export default function CompanyResearchPage() {
                 />
             </div>
 
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 h-full">
                 <CompanyReport
                     report={report}
                 />

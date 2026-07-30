@@ -39,7 +39,7 @@ export default function ChatMessage({
                     shadow-sm
                     ${
                         isUser
-                            ? "bg-blue-600 text-white"
+                            ? "bg-emerald-700 text-white"
                             : "bg-slate-100 text-slate-900"
                     }
                 `}

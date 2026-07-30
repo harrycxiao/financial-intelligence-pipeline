@@ -117,19 +117,16 @@ export default function ReportTabs({
                         transition
 
                         ${
-                            activeTab ===
-                            SUMMARY_TAB
-
+                            activeTab === SUMMARY_TAB
                                 ? `
-                                    bg-blue-600
+                                    bg-emerald-700
                                     text-white
-                                  `
-
+                                `
                                 : `
                                     bg-slate-100
                                     text-slate-700
                                     hover:bg-slate-200
-                                  `
+                                `
                         }
                     `}
                 >
@@ -166,7 +163,7 @@ export default function ReportTabs({
                                     holding.ticker
 
                                         ? `
-                                            bg-blue-600
+                                            bg-emerald-700
                                             text-white
                                           `
 

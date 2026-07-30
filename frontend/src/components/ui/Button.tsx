@@ -34,10 +34,10 @@ export default function Button({
 
     const variantClasses = {
         primary:
-            "bg-blue-600 hover:bg-blue-700 text-white",
+            "bg-emerald-700 hover:bg-emerald-800 text-white",
 
         secondary:
-            "bg-gray-200 hover:bg-gray-300 text-gray-900",
+            "bg-slate-100 hover:bg-slate-200 text-slate-900",
 
         danger:
             "bg-red-600 hover:bg-red-700 text-white",
@@ -45,13 +45,13 @@ export default function Button({
 
     const sizeClasses = {
         small:
-            "px-3 py-1.5 text-sm",
+            "px-3 py-2 text-sm",
 
         medium:
-            "px-4 py-2",
+            "px-5 py-2.5 text-base",
 
         large:
-            "px-6 py-3 text-lg",
+            "px-6 py-3 text-base",
     };
 
     return (
@@ -59,11 +59,11 @@ export default function Button({
             className={`
                 rounded-lg
                 font-medium
-                transition-colors
+                transition
                 duration-200
                 focus:outline-none
                 focus:ring-2
-                focus:ring-blue-400
+                focus:ring-emerald-300
                 disabled:opacity-50
                 disabled:cursor-not-allowed
                 ${variantClasses[variant]}

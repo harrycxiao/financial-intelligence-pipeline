@@ -67,6 +67,7 @@ export default function CompanyReport({
             >
                 <div
                     className="
+                        min-h-[220px]
                         rounded-lg
                         border
                         border-dashed
@@ -75,11 +76,19 @@ export default function CompanyReport({
                         px-6
                         py-12
                         text-center
+                        flex
+                        items-center
+                        justify-center
                     "
                 >
-                    <p className="text-sm text-slate-500">
-                        No company report has been generated yet.
-                    </p>
+                    <div className="space-y-3">
+                        <p className="text-base font-semibold text-slate-900">
+                            No company report has been generated yet.
+                        </p>
+                        <p className="text-sm leading-6 text-slate-500">
+                            Complete the company research form to review the generated analysis and evidence.
+                        </p>
+                    </div>
                 </div>
             </Card>
         );

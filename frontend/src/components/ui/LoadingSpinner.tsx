@@ -20,7 +20,7 @@ export default function LoadingSpinner({
                     animate-spin
                     rounded-full
                     border-slate-300
-                    border-t-blue-600
+                    border-t-emerald-700
                     ${sizeClasses[size]}
                 `}
             />

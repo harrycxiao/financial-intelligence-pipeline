@@ -23,7 +23,7 @@ export default function HomePage() {
         >
             <div
                 className="
-                    max-w-4xl
+                    w-full
                     rounded-2xl
                     border
                     border-slate-200

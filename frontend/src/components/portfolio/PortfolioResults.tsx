@@ -70,6 +70,7 @@ export default function PortfolioResults({
             >
                 <div
                     className="
+                        min-h-[220px]
                         rounded-lg
                         border
                         border-dashed
@@ -78,11 +79,19 @@ export default function PortfolioResults({
                         px-6
                         py-12
                         text-center
+                        flex
+                        items-center
+                        justify-center
                     "
                 >
-                    <p className="text-sm text-slate-500">
-                        No portfolio report has been generated yet.
-                    </p>
+                    <div className="space-y-3">
+                        <p className="text-base font-semibold text-slate-900">
+                            No portfolio report has been generated yet.
+                        </p>
+                        <p className="text-sm leading-6 text-slate-500">
+                            Generate a portfolio report to compare holdings, risk, and research insights.
+                        </p>
+                    </div>
                 </div>
             </Card>
         );
