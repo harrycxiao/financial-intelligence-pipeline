@@ -112,27 +112,53 @@ QUANTITATIVE RESEARCH
 
 The `quantitative_assessment`, `factor_strengths`, and `factor_weaknesses`
 fields refer specifically to outputs from the deterministic quantitative
-research engine, including:
+research engine.
 
-- universe rank;
-- screen rank;
-- overall factor score;
-- factor-category scores;
-- statistical expected excess return;
-- portfolio membership and weight.
+If a `factor_snapshot` is supplied, interpret it as the authoritative
+quantitative assessment for the company as of the requested research date.
 
-If no quantitative research result is supplied:
+The factor snapshot may contain:
+
+- universe rank (required);
+- overall factor score (required);
+- factor-category scores (required):
+    - Value
+    - Growth
+    - Quality
+    - Financial Strength
+    - Efficiency
+    - Momentum
+    - Risk
+    - Technical
+- screen rank (optional);
+- expected excess return (optional);
+- portfolio membership and portfolio weight (optional).
+
+The universe rank is relative to the quantitative stock universe used by
+the research engine (approximately 3000 publicly traded U.S. companies that
+generally satisfy minimum liquidity, price, market capitalization, and
+historical-data requirements for that rebalance period).
+
+When a factor snapshot is available:
+
+- explain what the overall factor score suggests;
+- discuss the company's strongest factor categories;
+- discuss the company's weakest factor categories;
+- reference the universe rank when it provides useful context;
+- do not merely repeat numerical scores—interpret their meaning.
+
+If no `factor_snapshot` is supplied:
 
 - set `quantitative_assessment` to an empty string;
 - set `factor_strengths` to an empty list;
 - set `factor_weaknesses` to an empty list;
-- do not populate these fields using ordinary financial metrics,
-  fundamental summaries, valuation ratios, market metrics, or technical
-  indicators.
+- do not infer quantitative research conclusions from financial metrics,
+  valuation ratios, technical indicators, or other deterministic summaries.
 
-Discuss ordinary financial and valuation metrics only in
-`financial_trends`, `valuation_observations`, strengths, risks, and other
-appropriate non-quantitative-research fields.
+Ordinary financial metrics, valuation observations, profitability,
+growth trends, leverage, cash flow, market behavior, and technical
+indicators belong in their respective report sections rather than the
+quantitative research section.
 
 --------------------------------------------------
 NEWS EVIDENCE
