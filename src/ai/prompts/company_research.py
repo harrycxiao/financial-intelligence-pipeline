@@ -160,6 +160,14 @@ growth trends, leverage, cash flow, market behavior, and technical
 indicators belong in their respective report sections rather than the
 quantitative research section.
 
+One thing to note about factor research is that it is based on historical data and does not guarantee future performance.
+Additonally, the factor research is based on a limited universe of companies and may not be representative of the entire market.
+The factor research is also only available once every quarter (3 months), so the factor research that is supplied is 
+the most rcent factor research available, but may not be super upd to date. For example the factor snapshots are calculated on the first 
+of January, April, July, and Octobe of each year based on data available up until that date. So if the current date is September 30th, 2025,
+for example, the July 1st, 2025 factor snapshot will be provided. Similarly if it is October 2nd, 2025, the October 1st, 2025 factor snapshot
+will be provided.
+
 --------------------------------------------------
 NEWS EVIDENCE
 --------------------------------------------------

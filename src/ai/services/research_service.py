@@ -1138,34 +1138,20 @@ def build_company_context_warnings(
             f"{ticker}."
         )
 
-    factor_scores = (
-        quantitative_data.get("factor_scores")
-        or {}
-    )
+    factor_scores = quantitative_data.get("factor_scores", {})
 
     if not factor_scores:
         warnings.append(
-            f"No factor snapshot was available for {ticker} on or before "
-            f"{request.as_of_date.isoformat()}. The company may not have been "
-            "included in the eligible quantitative universe for that period."
+            f"No quantitative factor snapshot was available for {ticker}."
         )
-    else:
-        if quantitative_data.get("universe_rank") is None:
-            warnings.append(
-                f"Universe rank was unavailable for {ticker}."
-            )
 
-        if quantitative_data.get("overall_score") is None:
-            warnings.append(
-                f"Overall factor score was unavailable for {ticker}."
-            )
-
-    if research_result_supplied:
-        if quantitative_data.get("screen_rank") is None:
-            warnings.append(
-                f"Screen rank was unavailable for {ticker} in the supplied "
-                "research-engine result."
-            )
+    if (
+        research_result_supplied
+        and quantitative_data.get("screen_rank") is None
+    ):
+        warnings.append(
+            f"Screen rank was unavailable for {ticker}."
+        )
 
     if request.comparison_tickers:
         warnings.append(
