@@ -905,6 +905,7 @@ def get_company_core_research_data_for_tickers(
                 "financial_history": [],
                 "fundamental_summary": {},
                 "market_history_summary": {},
+                "factor_snapshot": None,
                 "data_warnings": [
                     (
                         "Unable to build company research data for "

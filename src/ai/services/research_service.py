@@ -1138,21 +1138,34 @@ def build_company_context_warnings(
             f"{ticker}."
         )
 
-    if research_result_supplied:
-        if (
-            not quantitative_data.get("factor_scores")
-            and not quantitative_data.get("derived_metrics")
-        ):
-            warnings.append(
-                f"{ticker} did not have a usable quantitative record in the "
-                "supplied research-engine result."
-            )
-    else:
+    factor_scores = (
+        quantitative_data.get("factor_scores")
+        or {}
+    )
+
+    if not factor_scores:
         warnings.append(
-            "No research-engine result was supplied, so universe rank, "
-            "screen rank, factor scores, and expected excess return may be "
-            "unavailable."
+            f"No factor snapshot was available for {ticker} on or before "
+            f"{request.as_of_date.isoformat()}. The company may not have been "
+            "included in the eligible quantitative universe for that period."
         )
+    else:
+        if quantitative_data.get("universe_rank") is None:
+            warnings.append(
+                f"Universe rank was unavailable for {ticker}."
+            )
+
+        if quantitative_data.get("overall_score") is None:
+            warnings.append(
+                f"Overall factor score was unavailable for {ticker}."
+            )
+
+    if research_result_supplied:
+        if quantitative_data.get("screen_rank") is None:
+            warnings.append(
+                f"Screen rank was unavailable for {ticker} in the supplied "
+                "research-engine result."
+            )
 
     if request.comparison_tickers:
         warnings.append(
@@ -1274,6 +1287,58 @@ def prepare_company_research_context(
         ticker=clean_ticker,
         research_result=research_result,
     )
+
+    factor_snapshot = (
+        company_data.get("factor_snapshot")
+        or {}
+    )
+
+    if factor_snapshot:
+        quantitative_data = {
+            **quantitative_data,
+            "universe_rank": factor_snapshot.get(
+                "universe_rank"
+            ),
+            "overall_score": safe_optional_float(
+                factor_snapshot.get(
+                    "overall_score"
+                )
+            ),
+            "factor_scores": {
+                "value_score": safe_optional_float(
+                    factor_snapshot.get("value_score")
+                ),
+                "growth_score": safe_optional_float(
+                    factor_snapshot.get("growth_score")
+                ),
+                "quality_score": safe_optional_float(
+                    factor_snapshot.get("quality_score")
+                ),
+                "financial_strength_score": safe_optional_float(
+                    factor_snapshot.get(
+                        "financial_strength_score"
+                    )
+                ),
+                "efficiency_score": safe_optional_float(
+                    factor_snapshot.get(
+                        "efficiency_score"
+                    )
+                ),
+                "momentum_score": safe_optional_float(
+                    factor_snapshot.get(
+                        "momentum_score"
+                    )
+                ),
+                "risk_score": safe_optional_float(
+                    factor_snapshot.get("risk_score")
+                ),
+                "technical_score": safe_optional_float(
+                    factor_snapshot.get(
+                        "technical_score"
+                    )
+                ),
+            },
+        }
 
     metadata = (
         company_data.get("company_metadata")
