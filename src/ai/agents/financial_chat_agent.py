@@ -62,6 +62,11 @@ def retrieve_company_research_data(
     fundamentals, financial history, growth, profitability, balance-sheet
     strength, market performance, volatility, or technical indicators.
 
+    This tool also will return a factor snapshot for the ticker with factor scores
+    and universe rank, if the company was part of the eligible universe.
+
+    This tool can be used to answer questions about factor scores.
+
     The ticker must be the publicly traded company's stock ticker symbol.
     For example: Apple is AAPL, Microsoft is MSFT, and Robinhood is HOOD.
     """

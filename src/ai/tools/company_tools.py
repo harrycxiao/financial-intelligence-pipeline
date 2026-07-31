@@ -79,75 +79,6 @@ VALID_PERIOD_MODES = {
     "raw",
 }
 
-
-PREDICTIVE_MODEL_DATA_DIR = (
-    Path(__file__).resolve().parents[2]
-    / "results"
-    / "predictive_model_data"
-)
-
-
-def get_company_factor_snapshot(
-    ticker: str,
-    as_of_date: date,
-) -> Optional[Dict[str, Any]]:
-    """
-    Returns the most recent factor snapshot available on or before
-    the requested as_of_date.
-
-    Returns None if no snapshot or ticker is available.
-    """
-
-    snapshot_files = sorted(
-        PREDICTIVE_MODEL_DATA_DIR.glob("factor_snapshot_*.csv")
-    )
-
-    latest_snapshot = None
-    latest_date = None
-
-    for file_path in snapshot_files:
-        try:
-            snapshot_date = date.fromisoformat(
-                file_path.stem.replace("factor_snapshot_", "")
-            )
-        except ValueError:
-            continue
-
-        if snapshot_date <= as_of_date:
-            if latest_date is None or snapshot_date > latest_date:
-                latest_date = snapshot_date
-                latest_snapshot = file_path
-
-    if latest_snapshot is None:
-        return None
-    
-    assert latest_date is not None
-
-    df = pd.read_csv(latest_snapshot)
-
-    matching_rows = df[df["ticker"].astype(str).str.upper() == ticker.upper()]
-
-    if matching_rows.empty:
-        return None
-
-    universe_rank = matching_rows.index[0] + 1
-
-    row = matching_rows.iloc[0]
-
-    return {
-        "snapshot_date": latest_date.isoformat(),
-        "universe_rank": universe_rank,
-        "overall_score": row["overall_score"],
-        "value_score": row["value_score"],
-        "growth_score": row["growth_score"],
-        "quality_score": row["quality_score"],
-        "financial_strength_score": row["financial_strength_score"],
-        "efficiency_score": row["efficiency_score"],
-        "momentum_score": row["momentum_score"],
-        "risk_score": row["risk_score"],
-        "technical_score": row["technical_score"],
-    }
-
 # ---------------------------------------------------------------------
 # General normalization helpers
 # ---------------------------------------------------------------------
@@ -266,6 +197,75 @@ def clean_record(
         for key, value in record.items()
         if key not in excluded
     }
+
+
+PREDICTIVE_MODEL_DATA_DIR = (
+    Path(__file__).resolve().parents[3]
+    / "results"
+    / "predictive_model_data"
+)
+
+
+def get_company_factor_snapshot(
+    ticker: str,
+    as_of_date: date,
+) -> Optional[Dict[str, Any]]:
+    """
+    Returns the most recent factor snapshot available on or before
+    the requested as_of_date.
+
+    Returns None if no snapshot or ticker is available.
+    """
+
+    snapshot_files = sorted(
+        PREDICTIVE_MODEL_DATA_DIR.glob("factor_snapshot_*.csv")
+    )
+
+    latest_snapshot = None
+    latest_date = None
+
+    for file_path in snapshot_files:
+        try:
+            snapshot_date = date.fromisoformat(
+                file_path.stem.replace("factor_snapshot_", "")
+            )
+        except ValueError:
+            continue
+
+        if snapshot_date <= as_of_date:
+            if latest_date is None or snapshot_date > latest_date:
+                latest_date = snapshot_date
+                latest_snapshot = file_path
+
+    if latest_snapshot is None:
+        return None
+    
+    assert latest_date is not None
+
+    df = pd.read_csv(latest_snapshot)
+
+    matching_rows = df[df["ticker"].astype(str).str.upper() == ticker.upper()]
+
+    if matching_rows.empty:
+        return None
+
+    universe_rank = matching_rows.index[0] + 1
+
+    row = matching_rows.iloc[0]
+
+    return to_python_value({
+        "snapshot_date": latest_date.isoformat(),
+        "universe_rank": universe_rank,
+        "overall_score": row["overall_score"],
+        "value_score": row["value_score"],
+        "growth_score": row["growth_score"],
+        "quality_score": row["quality_score"],
+        "financial_strength_score": row["financial_strength_score"],
+        "efficiency_score": row["efficiency_score"],
+        "momentum_score": row["momentum_score"],
+        "risk_score": row["risk_score"],
+        "technical_score": row["technical_score"],
+    })
 
 
 # ---------------------------------------------------------------------
