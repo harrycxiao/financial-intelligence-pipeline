@@ -49,7 +49,7 @@ function confidenceBadgeClass(
 
         default:
             return `
-                bg-slate-100
+                bg-[#e8efed]
                 text-slate-700
             `;
     }

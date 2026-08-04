@@ -132,8 +132,8 @@ export default function HoldingReport({
                         className="
                             rounded-lg
                             border
-                            border-slate-200
-                            bg-slate-50
+                            border-[#d5e0dc]
+                            bg-[#edf3f1]
                             p-4
                         "
                     >
@@ -154,8 +154,8 @@ export default function HoldingReport({
                         className="
                             rounded-lg
                             border
-                            border-slate-200
-                            bg-slate-50
+                            border-[#d5e0dc]
+                            bg-[#edf3f1]
                             p-4
                         "
                     >

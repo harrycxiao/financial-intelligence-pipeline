@@ -74,8 +74,8 @@ export default function PortfolioResults({
                         rounded-lg
                         border
                         border-dashed
-                        border-slate-300
-                        bg-slate-50
+                        border-[#d5e0dc]
+                        bg-[#edf3f1]
                         px-6
                         py-12
                         text-center

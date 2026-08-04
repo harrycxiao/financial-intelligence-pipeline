@@ -119,13 +119,13 @@ export default function ReportTabs({
                         ${
                             activeTab === SUMMARY_TAB
                                 ? `
-                                    bg-emerald-700
+                                    bg-[#087f68]
                                     text-white
                                 `
                                 : `
-                                    bg-slate-100
+                                    bg-[#e8efed]
                                     text-slate-700
-                                    hover:bg-slate-200
+                                    hover:bg-[#dbe7e3]
                                 `
                         }
                     `}
@@ -163,14 +163,14 @@ export default function ReportTabs({
                                     holding.ticker
 
                                         ? `
-                                            bg-emerald-700
+                                            bg-[#087f68]
                                             text-white
                                           `
 
                                         : `
-                                            bg-slate-100
+                                            bg-[#e8efed]
                                             text-slate-700
-                                            hover:bg-slate-200
+                                            hover:bg-[#dbe7e3]
                                           `
                                 }
                             `}

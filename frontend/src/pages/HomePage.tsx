@@ -26,8 +26,8 @@ export default function HomePage() {
                     w-full
                     rounded-2xl
                     border
-                    border-slate-200
-                    bg-white
+                    border-[#d5e0dc]
+                    bg-[#f7f9f8]
                     p-10
                     shadow-sm
                 "
@@ -82,8 +82,8 @@ export default function HomePage() {
                             className="
                                 rounded-xl
                                 border
-                                border-slate-200
-                                bg-slate-50
+                                border-[#d5e0dc]
+                                bg-[#edf3f1]
                                 p-5
                             "
                         >
@@ -108,8 +108,8 @@ export default function HomePage() {
                             className="
                                 rounded-xl
                                 border
-                                border-slate-200
-                                bg-slate-50
+                                border-[#d5e0dc]
+                                bg-[#edf3f1]
                                 p-5
                             "
                         >
@@ -134,8 +134,8 @@ export default function HomePage() {
                             className="
                                 rounded-xl
                                 border
-                                border-slate-200
-                                bg-slate-50
+                                border-[#d5e0dc]
+                                bg-[#edf3f1]
                                 p-5
                             "
                         >

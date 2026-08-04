@@ -34,10 +34,10 @@ export default function Button({
 
     const variantClasses = {
         primary:
-            "bg-emerald-700 hover:bg-emerald-800 text-white",
+            "bg-[#087f68] hover:bg-[#066b58] text-white ring-1 ring-inset ring-[#34b99a]",
 
         secondary:
-            "bg-slate-100 hover:bg-slate-200 text-slate-900",
+            "bg-[#e8efed] hover:bg-[#dbe7e3] text-slate-900",
 
         danger:
             "bg-red-600 hover:bg-red-700 text-white",

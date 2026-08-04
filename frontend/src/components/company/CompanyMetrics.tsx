@@ -47,7 +47,7 @@ export default function CompanyMetrics({
 
                 <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-lg border border-[#d5e0dc] bg-[#edf3f1] p-4">
                         <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                             Ticker
                         </dt>
@@ -57,7 +57,7 @@ export default function CompanyMetrics({
                         </dd>
                     </div>
 
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-lg border border-[#d5e0dc] bg-[#edf3f1] p-4">
                         <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                             As of Date
                         </dt>
@@ -67,7 +67,7 @@ export default function CompanyMetrics({
                         </dd>
                     </div>
 
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-lg border border-[#d5e0dc] bg-[#edf3f1] p-4">
                         <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                             Confidence
                         </dt>
@@ -77,7 +77,7 @@ export default function CompanyMetrics({
                         </dd>
                     </div>
 
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-lg border border-[#d5e0dc] bg-[#edf3f1] p-4">
                         <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                             Evidence Sources
                         </dt>

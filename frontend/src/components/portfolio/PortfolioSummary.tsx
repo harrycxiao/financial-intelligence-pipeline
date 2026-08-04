@@ -106,7 +106,7 @@ export default function PortfolioSummary({
 
                     <dl className="grid gap-4 sm:grid-cols-3">
 
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <div className="rounded-lg border border-[#d5e0dc] bg-[#edf3f1] p-4">
 
                             <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                                 Holdings
@@ -118,7 +118,7 @@ export default function PortfolioSummary({
 
                         </div>
 
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <div className="rounded-lg border border-[#d5e0dc] bg-[#edf3f1] p-4">
 
                             <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                                 Portfolio Method
@@ -132,7 +132,7 @@ export default function PortfolioSummary({
 
                         </div>
 
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <div className="rounded-lg border border-[#d5e0dc] bg-[#edf3f1] p-4">
 
                             <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                                 Research Date

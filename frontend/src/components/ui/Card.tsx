@@ -29,8 +29,8 @@ export default function Card({
             className={`
                 rounded-xl
                 border
-                border-slate-200
-                bg-white
+                border-[#d5e0dc]
+                bg-[#f7f9f8]
                 shadow-sm
                 ${paddingClasses[padding]}
                 ${className}

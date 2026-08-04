@@ -55,8 +55,8 @@ export default function ChatInput({
             className="
                 rounded-xl
                 border
-                border-slate-200
-                bg-white
+                border-[#d5e0dc]
+                bg-[#f7f9f8]
                 p-4
                 shadow-sm
             "

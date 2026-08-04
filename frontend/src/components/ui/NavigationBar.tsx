@@ -28,8 +28,8 @@ export default function NavigationBar({
                 justify-between
                 rounded-xl
                 border
-                border-slate-200
-                bg-white
+                border-[#d5e0dc]
+                bg-[#f7f9f8]
                 px-6
                 py-4
                 shadow-sm

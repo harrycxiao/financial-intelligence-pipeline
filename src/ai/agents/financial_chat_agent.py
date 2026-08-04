@@ -56,16 +56,16 @@ def retrieve_company_research_data(
     ticker: str,
 ) -> Dict[str, Any]:
     """
-    Retrieve broad research data for one publicly traded company.
+    Retrieve broad deterministic research data for one publicly traded company.
 
     Use this tool for questions involving company identity, sector, industry,
     fundamentals, financial history, growth, profitability, balance-sheet
-    strength, market performance, volatility, or technical indicators.
+    strength, valuation, market performance, volatility, technical indicators,
+    quantitative factor scores, overall factor score, or universe rank.
 
-    This tool also will return a factor snapshot for the ticker with factor scores
-    and universe rank, if the company was part of the eligible universe.
-
-    This tool can be used to answer questions about factor scores.
+    When available, the result includes the most recent quarterly factor
+    snapshot dated on or before the current date. The factor snapshot may be
+    absent when the company was not part of the eligible quantitative universe.
 
     The ticker must be the publicly traded company's stock ticker symbol.
     For example: Apple is AAPL, Microsoft is MSFT, and Robinhood is HOOD.

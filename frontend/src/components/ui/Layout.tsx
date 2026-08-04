@@ -11,7 +11,7 @@ export default function Layout({
         <main
             className="
                 min-h-screen
-                bg-slate-100
+                bg-[#1c302f]
                 px-6
                 py-10
             "

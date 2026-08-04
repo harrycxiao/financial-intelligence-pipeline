@@ -28,8 +28,8 @@ export default function ChatWindow({
                 overflow-y-auto
                 rounded-xl
                 border
-                border-slate-200
-                bg-white
+                border-[#d5e0dc]
+                bg-[#f7f9f8]
                 shadow-sm
                 p-6
             "
